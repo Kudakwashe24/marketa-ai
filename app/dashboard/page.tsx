@@ -14,26 +14,41 @@ export default function DashboardPage() {
   const [result, setResult] = useState<CampaignResult | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const handleGenerateCampaign = (e: FormEvent<HTMLFormElement>) => {
+  const handleGenerateCampaign = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!prompt.trim()) return;
 
     setIsGenerating(true);
+    setErrorMessage("");
+    setResult(null);
 
-    setTimeout(() => {
-      setResult({
-        socialCaption: `🔥 ${prompt} Don’t miss out. Visit us today and take advantage of this amazing offer while it lasts.`,
-        whatsappPromo: `Hi everyone 👋 ${prompt} We’re running this promotion for a limited time. Message us now to book or place your order.`,
-        adCopy: `${prompt} Get quality service and great value today. Limited-time offer available now.`,
-        marketingTip:
-          "Use a real customer photo or product photo with this campaign to increase trust and improve engagement.",
+    try {
+      const res = await fetch("/api/generate-campaign", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ prompt }),
       });
 
-      setIsGenerating(false);
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Something went wrong.");
+      }
+
+      setResult(data);
+      setPrompt("");
       setCopiedField(null);
-    }, 1200);
+    } catch (error) {
+      console.error(error);
+      setErrorMessage("Could not generate campaign. Please try again.");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleCopy = async (label: string, text: string) => {
@@ -85,38 +100,67 @@ export default function DashboardPage() {
               {isGenerating ? "Generating..." : "Generate Campaign"}
             </button>
           </form>
+
+          {errorMessage && (
+            <p className="mt-4 text-sm text-red-600">{errorMessage}</p>
+          )}
         </div>
 
+        {isGenerating && (
+          <div className="mt-8 rounded-xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+            <p className="text-slate-600">
+              Marketa AI is generating your campaign...
+            </p>
+          </div>
+        )}
+
         {result && (
-          <section className="mt-10 grid gap-6 md:grid-cols-2">
-            <ResultCard
-              title="Social Media Caption"
-              content={result.socialCaption}
-              onCopy={() => handleCopy("socialCaption", result.socialCaption)}
-              copied={copiedField === "socialCaption"}
-            />
+          <>
+            <section className="mt-10 grid gap-6 md:grid-cols-2">
+              <ResultCard
+                title="Social Media Caption"
+                content={result.socialCaption}
+                onCopy={() =>
+                  handleCopy("socialCaption", result.socialCaption)
+                }
+                copied={copiedField === "socialCaption"}
+              />
 
-            <ResultCard
-              title="WhatsApp Promotion"
-              content={result.whatsappPromo}
-              onCopy={() => handleCopy("whatsappPromo", result.whatsappPromo)}
-              copied={copiedField === "whatsappPromo"}
-            />
+              <ResultCard
+                title="WhatsApp Promotion"
+                content={result.whatsappPromo}
+                onCopy={() =>
+                  handleCopy("whatsappPromo", result.whatsappPromo)
+                }
+                copied={copiedField === "whatsappPromo"}
+              />
 
-            <ResultCard
-              title="Ad Copy"
-              content={result.adCopy}
-              onCopy={() => handleCopy("adCopy", result.adCopy)}
-              copied={copiedField === "adCopy"}
-            />
+              <ResultCard
+                title="Ad Copy"
+                content={result.adCopy}
+                onCopy={() => handleCopy("adCopy", result.adCopy)}
+                copied={copiedField === "adCopy"}
+              />
 
-            <ResultCard
-              title="Marketing Tip"
-              content={result.marketingTip}
-              onCopy={() => handleCopy("marketingTip", result.marketingTip)}
-              copied={copiedField === "marketingTip"}
-            />
-          </section>
+              <ResultCard
+                title="Marketing Tip"
+                content={result.marketingTip}
+                onCopy={() =>
+                  handleCopy("marketingTip", result.marketingTip)
+                }
+                copied={copiedField === "marketingTip"}
+              />
+            </section>
+
+            <div className="mt-8 text-center">
+              <button
+                onClick={() => setResult(null)}
+                className="rounded-xl border border-slate-300 px-6 py-3 font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Generate another campaign
+              </button>
+            </div>
+          </>
         )}
       </div>
     </main>
@@ -130,7 +174,12 @@ type ResultCardProps = {
   copied: boolean;
 };
 
-function ResultCard({ title, content, onCopy, copied }: ResultCardProps) {
+function ResultCard({
+  title,
+  content,
+  onCopy,
+  copied,
+}: ResultCardProps) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex items-start justify-between gap-4">
