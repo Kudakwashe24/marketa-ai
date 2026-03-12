@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { Show, UserButton } from "@clerk/nextjs";
 
 export default function Navbar() {
   return (
@@ -12,27 +15,43 @@ export default function Navbar() {
           <a href="#how-it-works" className="hover:text-slate-900">
             How it works
           </a>
+
           <a href="#who-its-for" className="hover:text-slate-900">
             Who it&apos;s for
           </a>
+
           <Link href="/pricing" className="hover:text-slate-900">
             Pricing
           </Link>
         </nav>
 
         <div className="flex items-center gap-3">
-          <Link
-            href="/login"
-            className="rounded-lg px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
-          >
-            Log in
-          </Link>
-          <Link
-            href="/signup"
-            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
-          >
-            Get Started
-          </Link>
+          <Show when="signed-out">
+            <Link
+              href="/login"
+              className="rounded-lg px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+            >
+              Log in
+            </Link>
+
+            <Link
+              href="/signup"
+              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+            >
+              Get Started
+            </Link>
+          </Show>
+
+          <Show when="signed-in">
+            <Link
+              href="/dashboard"
+              className="rounded-lg px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+            >
+              Dashboard
+            </Link>
+
+            <UserButton />
+          </Show>
         </div>
       </div>
     </header>

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { UserButton } from "@clerk/nextjs";
 
@@ -70,6 +71,7 @@ export default function DashboardPage() {
       setUsage(data);
     } catch (error) {
       console.error(error);
+      setErrorMessage("Failed to check usage.");
     } finally {
       setIsLoadingUsage(false);
     }
@@ -160,7 +162,7 @@ export default function DashboardPage() {
             <div className="rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white">
               {isLoadingUsage || !usage
                 ? "Loading usage..."
-                : `${usage.usageCount} / ${usage.limit} campaigns used`}
+                : `${usage.plan} Plan • ${usage.usageCount} / ${usage.limit} used`}
             </div>
             <UserButton />
           </div>
@@ -174,12 +176,15 @@ export default function DashboardPage() {
             <p className="mt-2 text-sm text-amber-800">
               Upgrade your plan to generate more campaigns this month.
             </p>
-            <a
-              href="/pricing"
-              className="mt-4 inline-block rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white hover:bg-slate-700"
-            >
-              View Pricing
-            </a>
+
+            <div className="mt-4">
+              <Link
+                href="/pricing"
+                className="inline-block rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white hover:bg-slate-700"
+              >
+                View Pricing
+              </Link>
+            </div>
           </div>
         )}
 
@@ -195,7 +200,11 @@ export default function DashboardPage() {
             <textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Type what you want to promote here..."
+              placeholder={
+                hasReachedLimit
+                  ? "You have reached your monthly limit. Upgrade to continue."
+                  : "Type what you want to promote here..."
+              }
               disabled={hasReachedLimit || isGenerating}
               className="min-h-[160px] w-full rounded-2xl border border-slate-300 px-4 py-4 outline-none focus:border-slate-900 disabled:cursor-not-allowed disabled:bg-slate-100"
             />
@@ -205,7 +214,11 @@ export default function DashboardPage() {
               disabled={isGenerating || hasReachedLimit}
               className="rounded-xl bg-slate-900 px-6 py-3 font-medium text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isGenerating ? "Generating..." : "Generate Campaign"}
+              {isGenerating
+                ? "Generating..."
+                : hasReachedLimit
+                ? "Monthly limit reached"
+                : "Generate Campaign"}
             </button>
           </form>
 
@@ -213,6 +226,18 @@ export default function DashboardPage() {
             <p className="mt-4 text-sm text-red-600">{errorMessage}</p>
           )}
         </div>
+
+        {!result && !isGenerating && !hasReachedLimit && (
+          <div className="mt-8 rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm">
+            <h3 className="text-lg font-semibold text-slate-900">
+              Your campaign results will appear here
+            </h3>
+            <p className="mt-2 text-sm text-slate-600">
+              Type what you want to promote, generate your campaign, and copy
+              the content into Instagram, Facebook, or WhatsApp.
+            </p>
+          </div>
+        )}
 
         {isGenerating && (
           <div className="mt-8 rounded-xl border border-slate-200 bg-white p-6 text-center shadow-sm">
@@ -224,7 +249,16 @@ export default function DashboardPage() {
 
         {result && (
           <>
-            <section className="mt-10 grid gap-6 md:grid-cols-2">
+            <div className="mt-10 mb-4">
+              <h2 className="text-2xl font-bold text-slate-900">
+                Campaign Results
+              </h2>
+              <p className="mt-2 text-slate-600">
+                Copy and use these results in your marketing channels.
+              </p>
+            </div>
+
+            <section className="grid gap-6 md:grid-cols-2">
               <ResultCard
                 title="Social Media Caption"
                 content={result.socialCaption}
@@ -266,7 +300,7 @@ export default function DashboardPage() {
                 onClick={() => setResult(null)}
                 className="rounded-xl border border-slate-300 px-6 py-3 font-medium text-slate-700 hover:bg-slate-50"
               >
-                Generate another campaign
+                Generate Another Campaign
               </button>
             </div>
           </>
