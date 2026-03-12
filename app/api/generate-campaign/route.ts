@@ -1,12 +1,29 @@
 import { GoogleGenAI } from "@google/genai";
+import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY!,
 });
 
+const FREE_PLAN_LIMIT = 5;
+
+function getMonthKey() {
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  const month = String(now.getUTCMonth() + 1).padStart(2, "0");
+  return `${year}-${month}`;
+}
+
 export async function POST(req: Request) {
   try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await req.json();
     const prompt = body.prompt;
 
@@ -14,6 +31,36 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { error: "Prompt is required." },
         { status: 400 }
+      );
+    }
+
+    const monthKey = getMonthKey();
+
+    const { data: usageRow, error: usageError } = await supabaseAdmin
+      .from("campaign_usage")
+      .select("id, usage_count")
+      .eq("user_id", userId)
+      .eq("month_key", monthKey)
+      .maybeSingle();
+
+    if (usageError) {
+      console.error("Usage fetch error:", usageError);
+      return NextResponse.json(
+        { error: "Failed to check usage." },
+        { status: 500 }
+      );
+    }
+
+    const currentUsage = usageRow?.usage_count ?? 0;
+
+    if (currentUsage >= FREE_PLAN_LIMIT) {
+      return NextResponse.json(
+        {
+          error: "You have reached your monthly campaign limit.",
+          usageCount: currentUsage,
+          limit: FREE_PLAN_LIMIT,
+        },
+        { status: 403 }
       );
     }
 
@@ -45,10 +92,33 @@ ${prompt}
     });
 
     const text = response.text ?? "";
+    const parsed = JSON.parse(text.trim());
 
-    const cleanedText = text.trim();
+    if (usageRow) {
+      const { error: updateError } = await supabaseAdmin
+        .from("campaign_usage")
+        .update({
+          usage_count: currentUsage + 1,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", usageRow.id);
 
-    const parsed = JSON.parse(cleanedText);
+      if (updateError) {
+        console.error("Usage update error:", updateError);
+      }
+    } else {
+      const { error: insertError } = await supabaseAdmin
+        .from("campaign_usage")
+        .insert({
+          user_id: userId,
+          month_key: monthKey,
+          usage_count: 1,
+        });
+
+      if (insertError) {
+        console.error("Usage insert error:", insertError);
+      }
+    }
 
     return NextResponse.json(parsed);
   } catch (error) {

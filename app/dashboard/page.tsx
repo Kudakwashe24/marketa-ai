@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { UserButton } from "@clerk/nextjs";
 
 type CampaignResult = {
@@ -8,6 +8,13 @@ type CampaignResult = {
   whatsappPromo: string;
   adCopy: string;
   marketingTip: string;
+};
+
+type UsageData = {
+  usageCount: number;
+  limit: number;
+  remaining: number;
+  plan: string;
 };
 
 type ResultCardProps = {
@@ -48,11 +55,39 @@ export default function DashboardPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
+  const [usage, setUsage] = useState<UsageData | null>(null);
+  const [isLoadingUsage, setIsLoadingUsage] = useState(true);
+
+  const fetchUsage = async () => {
+    try {
+      const res = await fetch("/api/usage");
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to load usage.");
+      }
+
+      setUsage(data);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoadingUsage(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsage();
+  }, []);
 
   const handleGenerateCampaign = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!prompt.trim()) return;
+
+    if (usage && usage.usageCount >= usage.limit) {
+      setErrorMessage("You have reached your monthly campaign limit.");
+      return;
+    }
 
     setIsGenerating(true);
     setErrorMessage("");
@@ -76,9 +111,17 @@ export default function DashboardPage() {
       setResult(data);
       setPrompt("");
       setCopiedField(null);
-    } catch (error) {
+      await fetchUsage();
+    } catch (error: unknown) {
       console.error(error);
-      setErrorMessage("Could not generate campaign. Please try again.");
+
+      if (error instanceof Error) {
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage("Could not generate campaign. Please try again.");
+      }
+
+      await fetchUsage();
     } finally {
       setIsGenerating(false);
     }
@@ -97,6 +140,9 @@ export default function DashboardPage() {
     }
   };
 
+  const hasReachedLimit =
+    usage !== null && usage.limit !== -1 && usage.usageCount >= usage.limit;
+
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-10">
       <div className="mx-auto max-w-5xl">
@@ -110,8 +156,32 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <UserButton />
+          <div className="flex items-center gap-4">
+            <div className="rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white">
+              {isLoadingUsage || !usage
+                ? "Loading usage..."
+                : `${usage.usageCount} / ${usage.limit} campaigns used`}
+            </div>
+            <UserButton />
+          </div>
         </div>
+
+        {hasReachedLimit && (
+          <div className="mb-6 rounded-2xl border border-amber-300 bg-amber-50 p-5">
+            <h2 className="text-lg font-semibold text-amber-900">
+              You have reached your Free plan limit
+            </h2>
+            <p className="mt-2 text-sm text-amber-800">
+              Upgrade your plan to generate more campaigns this month.
+            </p>
+            <a
+              href="/pricing"
+              className="mt-4 inline-block rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white hover:bg-slate-700"
+            >
+              View Pricing
+            </a>
+          </div>
+        )}
 
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-semibold text-slate-900">
@@ -126,12 +196,13 @@ export default function DashboardPage() {
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Type what you want to promote here..."
-              className="min-h-[160px] w-full rounded-2xl border border-slate-300 px-4 py-4 outline-none focus:border-slate-900"
+              disabled={hasReachedLimit || isGenerating}
+              className="min-h-[160px] w-full rounded-2xl border border-slate-300 px-4 py-4 outline-none focus:border-slate-900 disabled:cursor-not-allowed disabled:bg-slate-100"
             />
 
             <button
               type="submit"
-              disabled={isGenerating}
+              disabled={isGenerating || hasReachedLimit}
               className="rounded-xl bg-slate-900 px-6 py-3 font-medium text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isGenerating ? "Generating..." : "Generate Campaign"}
