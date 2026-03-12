@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Show, UserButton } from "@clerk/nextjs";
 
+
 export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur">
