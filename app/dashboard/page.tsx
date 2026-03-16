@@ -397,30 +397,59 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white">
-              {isLoadingUsage || !usage ? (
-                "Loading usage..."
-              ) : (
-                <div className="space-y-1 text-right">
-                  <p>{usage.planName} Plan</p>
-                  <p>
-                    Campaigns:{" "}
-                    {usage.campaignLimit === -1
-                      ? `${usage.campaignUsageCount} / Unlimited`
-                      : `${usage.campaignUsageCount} / ${usage.campaignLimit}`}
-                  </p>
-                  <p>
-                    Posters:{" "}
-                    {usage.posterLimit === -1
-                      ? `${usage.posterUsageCount} / Unlimited`
-                      : `${usage.posterUsageCount} / ${usage.posterLimit}`}
-                  </p>
-                </div>
-              )}
-            </div>
             <UserButton />
           </div>
         </div>
+
+        {usage && (
+          <div className="mb-8 grid gap-4 md:grid-cols-3">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <p className="text-sm text-slate-500">Current Plan</p>
+              <h3 className="mt-2 text-xl font-bold text-slate-900">
+                {usage.planName}
+              </h3>
+
+              <p className="mt-3 text-sm text-slate-600">
+                Upgrade to unlock more campaigns and premium features.
+              </p>
+
+              <Link
+                href="/pricing"
+                className="mt-4 inline-block rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+              >
+                Upgrade Plan
+              </Link>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <p className="text-sm text-slate-500">Campaign Usage</p>
+
+              <h3 className="mt-2 text-xl font-bold text-slate-900">
+                {usage.campaignLimit === -1
+                  ? `${usage.campaignUsageCount} / Unlimited`
+                  : `${usage.campaignUsageCount} / ${usage.campaignLimit}`}
+              </h3>
+
+              <p className="mt-2 text-sm text-slate-600">
+                Campaigns generated this month.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <p className="text-sm text-slate-500">Poster Usage</p>
+
+              <h3 className="mt-2 text-xl font-bold text-slate-900">
+                {usage.posterLimit === -1
+                  ? `${usage.posterUsageCount} / Unlimited`
+                  : `${usage.posterUsageCount} / ${usage.posterLimit}`}
+              </h3>
+
+              <p className="mt-2 text-sm text-slate-600">
+                Posters generated this month.
+              </p>
+            </div>
+          </div>
+        )}
 
         {campaignLimitReached && (
           <div className="mb-6 rounded-2xl border border-amber-300 bg-amber-50 p-5">
@@ -440,6 +469,26 @@ export default function DashboardPage() {
                 View Pricing
               </Link>
             </div>
+          </div>
+        )}
+
+        {usage?.plan === "free" && (
+          <div className="mb-6 rounded-2xl border border-indigo-200 bg-indigo-50 p-5">
+            <h2 className="text-lg font-semibold text-indigo-900">
+              Unlock more marketing power
+            </h2>
+
+            <p className="mt-2 text-sm text-indigo-800">
+              Upgrade your plan to generate more campaigns, create posters, and
+              unlock campaign templates.
+            </p>
+
+            <Link
+              href="/pricing"
+              className="mt-4 inline-block rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white hover:bg-slate-700"
+            >
+              View Plans
+            </Link>
           </div>
         )}
 
@@ -621,27 +670,27 @@ export default function DashboardPage() {
                     </p>
                   </div>
 
-                  <div className="flex flex-col items-start gap-2 md:items-end">
+                  {posterGenerationLocked ? (
+                    <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                      Poster generation is available on Starter, Growth, and Pro
+                      plans.
+                      <Link
+                        href="/pricing"
+                        className="ml-2 font-semibold underline"
+                      >
+                        Upgrade to unlock
+                      </Link>
+                    </div>
+                  ) : (
                     <button
                       type="button"
                       onClick={handleGeneratePoster}
-                      disabled={
-                        isGeneratingPoster ||
-                        !generatedPrompt.trim() ||
-                        posterGenerationLocked
-                      }
-                      className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={isGeneratingPoster || !generatedPrompt.trim()}
+                      className="mt-3 rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {isGeneratingPoster ? "Creating Poster..." : "Create Poster"}
+                      {isGeneratingPoster ? "Creating Poster..." : "Generate Poster"}
                     </button>
-
-                    {posterGenerationLocked && (
-                      <p className="text-xs text-slate-500">
-                        Poster generation is available on Starter, Growth, and
-                        Pro.
-                      </p>
-                    )}
-                  </div>
+                  )}
                 </div>
 
                 <section className="grid gap-6 md:grid-cols-2">
@@ -696,13 +745,23 @@ export default function DashboardPage() {
                         </p>
                       </div>
 
-                      <a
-                        href={posterUrl}
-                        download="marketa-poster.png"
-                        className="inline-block rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white hover:bg-slate-700"
-                      >
-                        Download Poster
-                      </a>
+                      <div className="flex gap-3">
+                        <a
+                          href={posterUrl}
+                          download="marketa-poster.png"
+                          className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white hover:bg-slate-700"
+                        >
+                          Download Poster
+                        </a>
+
+                        <button
+                          type="button"
+                          onClick={() => window.open(posterUrl, "_blank")}
+                          className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                        >
+                          View Full Size
+                        </button>
+                      </div>
                     </div>
 
                     <img
@@ -737,9 +796,7 @@ export default function DashboardPage() {
                 Recent Campaigns
               </h2>
               <p className="mt-2 text-sm text-slate-600">
-                {usage?.advancedHistoryEnabled
-                  ? "Search, reuse, or delete your saved campaigns."
-                  : "Reuse your saved campaigns. Search and delete are available on paid plans."}
+                Search, reuse, or delete your saved campaigns.
               </p>
 
               {usage?.advancedHistoryEnabled ? (
