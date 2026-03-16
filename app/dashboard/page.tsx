@@ -12,10 +12,14 @@ type CampaignResult = {
 };
 
 type UsageData = {
-  usageCount: number;
-  limit: number;
-  remaining: number;
   plan: string;
+  planName: string;
+  campaignUsageCount: number;
+  campaignLimit: number;
+  posterUsageCount: number;
+  posterLimit: number;
+  templatesEnabled: boolean;
+  advancedHistoryEnabled: boolean;
 };
 
 type CampaignHistoryItem = {
@@ -38,6 +42,49 @@ type ResultCardProps = {
   content: string;
   onCopy: () => void;
   copied: boolean;
+};
+
+const TEMPLATE_MAP: Record<string, string[]> = {
+  "Salon / Barber": [
+    "Promote my weekend braids special",
+    "Promote a fresh haircut special for this Friday",
+    "Invite clients to book appointments before weekend slots fill up",
+  ],
+  "Restaurant / Food Business": [
+    "Promote my weekend burger special",
+    "Promote our lunch combo deal",
+    "Promote free delivery for orders above a certain amount",
+  ],
+  "Clothing Store / Boutique": [
+    "Promote our new arrivals this week",
+    "Promote a limited-time fashion sale",
+    "Promote our weekend outfit collection",
+  ],
+  "Freelancer / Personal Brand": [
+    "Promote my web design services",
+    "Promote a limited-time personal branding offer",
+    "Promote a free consultation for new clients",
+  ],
+  "Car Dealership": [
+    "Promote a weekend car sale event",
+    "Promote affordable monthly repayment options",
+    "Promote a featured vehicle deal this week",
+  ],
+  "Home Services (Electrician, Plumber, etc.)": [
+    "Promote discounted home repair services this week",
+    "Promote same-day emergency callout services",
+    "Promote a limited-time discount for new customers",
+  ],
+  "Health & Wellness (Massage, Spa, Fitness)": [
+    "Promote a weekend massage special",
+    "Promote a relaxing spa treatment package",
+    "Promote a new client fitness offer",
+  ],
+  "Local Service Business": [
+    "Promote our services to new local customers",
+    "Promote a limited-time special offer this week",
+    "Promote fast and reliable service for local clients",
+  ],
 };
 
 function ResultCard({
@@ -121,7 +168,7 @@ export default function DashboardPage() {
       }
 
       setHistory(data);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(error);
     } finally {
       setIsLoadingHistory(false);
@@ -157,7 +204,11 @@ export default function DashboardPage() {
 
     if (!prompt.trim()) return;
 
-    if (usage && usage.usageCount >= usage.limit) {
+    if (
+      usage &&
+      usage.campaignLimit !== -1 &&
+      usage.campaignUsageCount >= usage.campaignLimit
+    ) {
       setErrorMessage("You have reached your monthly campaign limit.");
       return;
     }
@@ -238,6 +289,7 @@ export default function DashboardPage() {
       }
 
       setPosterUrl(data.imageUrl);
+      await fetchUsage();
     } catch (error: unknown) {
       console.error(error);
 
@@ -322,8 +374,14 @@ export default function DashboardPage() {
     await fetchHistory(historySearch);
   };
 
-  const hasReachedLimit =
-    usage !== null && usage.limit !== -1 && usage.usageCount >= usage.limit;
+  const campaignLimitReached =
+    usage !== null &&
+    usage.campaignLimit !== -1 &&
+    usage.campaignUsageCount >= usage.campaignLimit;
+
+  const posterGenerationLocked = usage !== null && usage.posterLimit === 0;
+
+  const selectedTemplates = TEMPLATE_MAP[businessType] ?? [];
 
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-10">
@@ -339,19 +397,36 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white">
-              {isLoadingUsage || !usage
-                ? "Loading usage..."
-                : `${usage.plan} Plan • ${usage.usageCount} / ${usage.limit} used`}
+            <div className="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white">
+              {isLoadingUsage || !usage ? (
+                "Loading usage..."
+              ) : (
+                <div className="space-y-1 text-right">
+                  <p>{usage.planName} Plan</p>
+                  <p>
+                    Campaigns:{" "}
+                    {usage.campaignLimit === -1
+                      ? `${usage.campaignUsageCount} / Unlimited`
+                      : `${usage.campaignUsageCount} / ${usage.campaignLimit}`}
+                  </p>
+                  <p>
+                    Posters:{" "}
+                    {usage.posterLimit === -1
+                      ? `${usage.posterUsageCount} / Unlimited`
+                      : `${usage.posterUsageCount} / ${usage.posterLimit}`}
+                  </p>
+                </div>
+              )}
             </div>
             <UserButton />
           </div>
         </div>
 
-        {hasReachedLimit && (
+        {campaignLimitReached && (
           <div className="mb-6 rounded-2xl border border-amber-300 bg-amber-50 p-5">
             <h2 className="text-lg font-semibold text-amber-900">
-              You have reached your Free plan limit
+              You have reached your {usage?.planName ?? "current"} plan campaign
+              limit
             </h2>
             <p className="mt-2 text-sm text-amber-800">
               Upgrade your plan to generate more campaigns this month.
@@ -409,7 +484,7 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={handleUseDailyIdea}
-                disabled={!dailyIdea || hasReachedLimit}
+                disabled={!dailyIdea || campaignLimitReached}
                 className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Use This Idea
@@ -437,7 +512,7 @@ export default function DashboardPage() {
                   <select
                     value={businessType}
                     onChange={(e) => setBusinessType(e.target.value)}
-                    disabled={hasReachedLimit || isGenerating}
+                    disabled={campaignLimitReached || isGenerating}
                     className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 outline-none focus:border-slate-900 disabled:cursor-not-allowed disabled:bg-slate-100"
                   >
                     <option>Salon / Barber</option>
@@ -451,26 +526,59 @@ export default function DashboardPage() {
                   </select>
                 </div>
 
+                {usage?.templatesEnabled ? (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700">
+                      Quick Templates
+                    </label>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {selectedTemplates.map((template) => (
+                        <button
+                          key={template}
+                          type="button"
+                          onClick={() => setPrompt(template)}
+                          className="rounded-full border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                        >
+                          {template}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
+                    <p className="text-sm text-slate-600">
+                      Quick templates are available on Starter, Growth, and Pro
+                      plans.
+                    </p>
+                    <Link
+                      href="/pricing"
+                      className="mt-3 inline-block text-sm font-medium text-slate-900 underline"
+                    >
+                      Upgrade to unlock templates
+                    </Link>
+                  </div>
+                )}
+
                 <textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder={
-                    hasReachedLimit
+                    campaignLimitReached
                       ? "You have reached your monthly limit. Upgrade to continue."
                       : "Type what you want to promote here..."
                   }
-                  disabled={hasReachedLimit || isGenerating}
+                  disabled={campaignLimitReached || isGenerating}
                   className="min-h-[160px] w-full rounded-2xl border border-slate-300 px-4 py-4 text-slate-900 placeholder-slate-400 outline-none focus:border-slate-900 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
                 />
 
                 <button
                   type="submit"
-                  disabled={isGenerating || hasReachedLimit}
+                  disabled={isGenerating || campaignLimitReached}
                   className="rounded-xl bg-slate-900 px-6 py-3 font-medium text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isGenerating
                     ? "Generating..."
-                    : hasReachedLimit
+                    : campaignLimitReached
                     ? "Monthly limit reached"
                     : "Generate Campaign"}
                 </button>
@@ -481,7 +589,7 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {!result && !isGenerating && !hasReachedLimit && (
+            {!result && !isGenerating && !campaignLimitReached && (
               <div className="mt-8 rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm">
                 <h3 className="text-lg font-semibold text-slate-900">
                   Your campaign results will appear here
@@ -513,14 +621,27 @@ export default function DashboardPage() {
                     </p>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={handleGeneratePoster}
-                    disabled={isGeneratingPoster || !generatedPrompt.trim()}
-                    className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {isGeneratingPoster ? "Creating Poster..." : "Create Poster"}
-                  </button>
+                  <div className="flex flex-col items-start gap-2 md:items-end">
+                    <button
+                      type="button"
+                      onClick={handleGeneratePoster}
+                      disabled={
+                        isGeneratingPoster ||
+                        !generatedPrompt.trim() ||
+                        posterGenerationLocked
+                      }
+                      className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isGeneratingPoster ? "Creating Poster..." : "Create Poster"}
+                    </button>
+
+                    {posterGenerationLocked && (
+                      <p className="text-xs text-slate-500">
+                        Poster generation is available on Starter, Growth, and
+                        Pro.
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 <section className="grid gap-6 md:grid-cols-2">
@@ -616,27 +737,44 @@ export default function DashboardPage() {
                 Recent Campaigns
               </h2>
               <p className="mt-2 text-sm text-slate-600">
-                Search, reuse, or delete your saved campaigns.
+                {usage?.advancedHistoryEnabled
+                  ? "Search, reuse, or delete your saved campaigns."
+                  : "Reuse your saved campaigns. Search and delete are available on paid plans."}
               </p>
 
-              <form
-                onSubmit={handleHistorySearchSubmit}
-                className="mt-5 flex gap-2"
-              >
-                <input
-                  type="text"
-                  value={historySearch}
-                  onChange={(e) => setHistorySearch(e.target.value)}
-                  placeholder="Search history..."
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 outline-none focus:border-slate-900"
-                />
-                <button
-                  type="submit"
-                  className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-medium text-white hover:bg-slate-700"
+              {usage?.advancedHistoryEnabled ? (
+                <form
+                  onSubmit={handleHistorySearchSubmit}
+                  className="mt-5 flex gap-2"
                 >
-                  Search
-                </button>
-              </form>
+                  <input
+                    type="text"
+                    value={historySearch}
+                    onChange={(e) => setHistorySearch(e.target.value)}
+                    placeholder="Search history..."
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 outline-none focus:border-slate-900"
+                  />
+                  <button
+                    type="submit"
+                    className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-medium text-white hover:bg-slate-700"
+                  >
+                    Search
+                  </button>
+                </form>
+              ) : (
+                <div className="mt-5 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
+                  <p className="text-sm text-slate-600">
+                    Advanced history search and delete are available on Starter,
+                    Growth, and Pro.
+                  </p>
+                  <Link
+                    href="/pricing"
+                    className="mt-3 inline-block text-sm font-medium text-slate-900 underline"
+                  >
+                    Upgrade to unlock advanced history
+                  </Link>
+                </div>
+              )}
 
               <div className="mt-6 space-y-4">
                 {isLoadingHistory ? (
@@ -681,26 +819,30 @@ export default function DashboardPage() {
                             View Campaign
                           </button>
 
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleCopy("historyPrompt", item.prompt)
-                            }
-                            className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                          >
-                            Copy Prompt
-                          </button>
+                          {usage?.advancedHistoryEnabled && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleCopy("historyPrompt", item.prompt)
+                                }
+                                className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                              >
+                                Copy Prompt
+                              </button>
 
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteHistoryItem(item.id)}
-                            disabled={isDeletingHistoryId === item.id}
-                            className="rounded-lg border border-red-300 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            {isDeletingHistoryId === item.id
-                              ? "Deleting..."
-                              : "Delete"}
-                          </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteHistoryItem(item.id)}
+                                disabled={isDeletingHistoryId === item.id}
+                                className="rounded-lg border border-red-300 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                {isDeletingHistoryId === item.id
+                                  ? "Deleting..."
+                                  : "Delete"}
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
                     );

@@ -2,12 +2,11 @@ import { GoogleGenAI } from "@google/genai";
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getOrCreateUserPlan } from "@/lib/userPlan";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY!,
 });
-
-const FREE_PLAN_LIMIT = 5;
 
 function getMonthKey() {
   const now = new Date();
@@ -30,6 +29,8 @@ export async function POST(req: Request) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const { config, plan } = await getOrCreateUserPlan(userId);
 
     const body = await req.json();
     const prompt = body.prompt;
@@ -61,12 +62,13 @@ export async function POST(req: Request) {
 
     const currentUsage = usageRow?.usage_count ?? 0;
 
-    if (currentUsage >= FREE_PLAN_LIMIT) {
+    if (config.campaignLimit !== -1 && currentUsage >= config.campaignLimit) {
       return NextResponse.json(
         {
-          error: "You have reached your monthly campaign limit.",
+          error: `You have reached your ${config.name} plan monthly campaign limit.`,
           usageCount: currentUsage,
-          limit: FREE_PLAN_LIMIT,
+          limit: config.campaignLimit,
+          plan,
         },
         { status: 403 }
       );

@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getOrCreateUserPlan } from "@/lib/userPlan";
 
 export async function GET(req: Request) {
   try {
@@ -9,6 +10,8 @@ export async function GET(req: Request) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const { config } = await getOrCreateUserPlan(userId);
 
     const { searchParams } = new URL(req.url);
     const search = searchParams.get("search")?.trim() || "";
@@ -23,6 +26,13 @@ export async function GET(req: Request) {
       .limit(20);
 
     if (search) {
+      if (!config.advancedHistoryEnabled) {
+        return NextResponse.json(
+          { error: "Advanced history search is available on paid plans only." },
+          { status: 403 }
+        );
+      }
+
       query = query.ilike("prompt", `%${search}%`);
     }
 
@@ -53,6 +63,15 @@ export async function DELETE(req: Request) {
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { config } = await getOrCreateUserPlan(userId);
+
+    if (!config.advancedHistoryEnabled) {
+      return NextResponse.json(
+        { error: "Deleting campaign history is available on paid plans only." },
+        { status: 403 }
+      );
     }
 
     const { searchParams } = new URL(req.url);
