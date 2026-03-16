@@ -1,78 +1,78 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { PLAN_CONFIG } from "@/lib/plans";
-import { getUserPlan } from "@/lib/subscription";
+import { PLAN_CONFIGS } from "@/lib/plans";
+import { getUserSubscription } from "@/lib/subscription";
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY!,
-});
+const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export async function GET(req: Request) {
   try {
     const { userId } = await auth();
 
     if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
     }
 
-    const plan = await getUserPlan(userId);
-    const config = PLAN_CONFIG[plan];
+    // Get user's plan
+    const plan =
+      (await getUserSubscription(userId)) as keyof typeof PLAN_CONFIGS;
 
+    const planConfig = PLAN_CONFIGS[plan];
+
+    // Get business type from query
     const { searchParams } = new URL(req.url);
     const businessType =
       searchParams.get("businessType") || "Local Service Business";
 
-    const prompt = config.personalizedDailyIdea
+    // Different prompt depending on plan
+    const prompt = planConfig.personalizedDailyIdea
       ? `
-You are Marketa AI, an AI marketing assistant for businesses.
+You are Marketa AI, an AI marketing assistant.
 
-Generate one practical daily marketing idea specifically for this business type:
-${businessType}
+Give ONE daily marketing idea specifically for a ${businessType}.
 
-Rules:
-- Keep it short
-- Keep it useful
-- Keep it beginner-friendly
-- Make it suitable for social media or WhatsApp promotion
-- Return valid JSON only
-- Do not use markdown
-- Do not use code fences
+Respond ONLY in JSON like this:
 
-Return this exact JSON shape:
 {
-  "title": "string",
-  "idea": "string"
+"title": "Short catchy title",
+"idea": "A clear marketing action the business owner can take today"
 }
 `
       : `
-You are Marketa AI, an AI marketing assistant for businesses.
+You are Marketa AI.
 
-Generate one practical daily marketing idea for a small business owner.
+Give ONE simple daily marketing idea for a local business.
 
-Rules:
-- Keep it short
-- Keep it useful
-- Keep it beginner-friendly
-- Make it suitable for social media or WhatsApp promotion
-- Return valid JSON only
-- Do not use markdown
-- Do not use code fences
+Respond ONLY in JSON like this:
 
-Return this exact JSON shape:
 {
-  "title": "string",
-  "idea": "string"
+"title": "Short catchy title",
+"idea": "A simple marketing action"
 }
 `;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
+    const model = ai.getGenerativeModel({
+      model: "gemini-1.5-flash",
     });
 
-    const text = response.text ?? "";
-    const parsed = JSON.parse(text.trim());
+    const result = await model.generateContent(prompt);
+
+    const text = result.response.text();
+
+    let parsed;
+
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      parsed = {
+        title: "Today's Marketing Idea",
+        idea: text,
+      };
+    }
 
     return NextResponse.json(parsed);
   } catch (error) {
