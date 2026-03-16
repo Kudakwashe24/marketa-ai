@@ -28,6 +28,11 @@ type CampaignHistoryItem = {
   created_at: string;
 };
 
+type DailyIdea = {
+  title: string;
+  idea: string;
+};
+
 type ResultCardProps = {
   title: string;
   content: string;
@@ -61,6 +66,7 @@ function ResultCard({
 }
 
 export default function DashboardPage() {
+  const [businessType, setBusinessType] = useState("Local Service Business");
   const [prompt, setPrompt] = useState("");
   const [result, setResult] = useState<CampaignResult | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -70,6 +76,8 @@ export default function DashboardPage() {
   const [isLoadingUsage, setIsLoadingUsage] = useState(true);
   const [history, setHistory] = useState<CampaignHistoryItem[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [dailyIdea, setDailyIdea] = useState<DailyIdea | null>(null);
+  const [isLoadingDailyIdea, setIsLoadingDailyIdea] = useState(true);
 
   const fetchUsage = async () => {
     try {
@@ -106,9 +114,27 @@ export default function DashboardPage() {
     }
   };
 
+  const fetchDailyIdea = async () => {
+    try {
+      const res = await fetch("/api/daily-idea");
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to load daily idea.");
+      }
+
+      setDailyIdea(data);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoadingDailyIdea(false);
+    }
+  };
+
   useEffect(() => {
     fetchUsage();
     fetchHistory();
+    fetchDailyIdea();
   }, []);
 
   const handleGenerateCampaign = async (e: FormEvent<HTMLFormElement>) => {
@@ -131,7 +157,10 @@ export default function DashboardPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({
+          prompt,
+          businessType,
+        }),
       });
 
       const data = await res.json();
@@ -183,6 +212,12 @@ export default function DashboardPage() {
     setCopiedField(null);
   };
 
+  const handleUseDailyIdea = () => {
+    if (!dailyIdea) return;
+    setPrompt(dailyIdea.idea);
+    setResult(null);
+  };
+
   const hasReachedLimit =
     usage !== null && usage.limit !== -1 && usage.usageCount >= usage.limit;
 
@@ -229,6 +264,56 @@ export default function DashboardPage() {
           </div>
         )}
 
+        <div className="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-500">
+                Daily Marketing Idea
+              </p>
+
+              {isLoadingDailyIdea ? (
+                <>
+                  <h2 className="mt-2 text-xl font-semibold text-slate-900">
+                    Loading today&apos;s idea...
+                  </h2>
+                  <p className="mt-2 text-slate-600">
+                    Marketa AI is preparing your idea for today.
+                  </p>
+                </>
+              ) : dailyIdea ? (
+                <>
+                  <h2 className="mt-2 text-xl font-semibold text-slate-900">
+                    {dailyIdea.title}
+                  </h2>
+                  <p className="mt-3 max-w-3xl text-slate-600">
+                    {dailyIdea.idea}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h2 className="mt-2 text-xl font-semibold text-slate-900">
+                    No daily idea available right now
+                  </h2>
+                  <p className="mt-2 text-slate-600">
+                    Please refresh and try again.
+                  </p>
+                </>
+              )}
+            </div>
+
+            <div>
+              <button
+                type="button"
+                onClick={handleUseDailyIdea}
+                disabled={!dailyIdea || hasReachedLimit}
+                className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Use This Idea
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div className="grid gap-8 lg:grid-cols-[1.4fr_0.9fr]">
           <div>
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -240,6 +325,28 @@ export default function DashboardPage() {
               </p>
 
               <form onSubmit={handleGenerateCampaign} className="mt-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">
+                    Business Type
+                  </label>
+
+                  <select
+                    value={businessType}
+                    onChange={(e) => setBusinessType(e.target.value)}
+                    disabled={hasReachedLimit || isGenerating}
+                    className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900 disabled:cursor-not-allowed disabled:bg-slate-100"
+                  >
+                    <option>Salon / Barber</option>
+                    <option>Restaurant / Food Business</option>
+                    <option>Clothing Store / Boutique</option>
+                    <option>Freelancer / Personal Brand</option>
+                    <option>Car Dealership</option>
+                    <option>Home Services (Electrician, Plumber, etc.)</option>
+                    <option>Health & Wellness (Massage, Spa, Fitness)</option>
+                    <option>Local Service Business</option>
+                  </select>
+                </div>
+
                 <textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
@@ -373,7 +480,7 @@ export default function DashboardPage() {
                       key={item.id}
                       className="rounded-2xl border border-slate-200 p-4"
                     >
-                      <p className="text-sm font-medium text-slate-900 line-clamp-2">
+                      <p className="line-clamp-2 text-sm font-medium text-slate-900">
                         {item.prompt}
                       </p>
 

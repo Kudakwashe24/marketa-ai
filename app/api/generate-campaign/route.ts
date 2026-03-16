@@ -33,6 +33,7 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     const prompt = body.prompt;
+    const businessType = body.businessType || "Local Service Business";
 
     if (!prompt || typeof prompt !== "string") {
       return NextResponse.json(
@@ -72,25 +73,32 @@ export async function POST(req: Request) {
     }
 
     const fullPrompt = `
-You are Marketa AI, an AI marketing assistant for businesses.
+You are Marketa AI, an AI marketing assistant.
 
-A user will give you something they want to promote.
+Business type:
+${businessType}
 
-Generate a response in valid JSON format only with these exact keys:
-- socialCaption
-- whatsappPromo
-- adCopy
-- marketingTip
+Promotion request:
+${prompt}
+
+Generate marketing content tailored specifically for this type of business.
+
+Return valid JSON with these exact fields:
+
+{
+  "socialCaption": "...",
+  "whatsappPromo": "...",
+  "adCopy": "...",
+  "marketingTip": "..."
+}
 
 Rules:
-- Keep the tone professional, simple, and practical.
-- Make the output useful for small businesses.
-- Do not include markdown.
-- Do not include code fences.
-- Return JSON only.
-
-User prompt:
-${prompt}
+- Keep the tone professional, simple, and practical
+- Make the content relevant to the business type
+- Make the output useful for small businesses
+- No markdown
+- No code fences
+- Return JSON only
 `;
 
     const response = await ai.models.generateContent({
@@ -131,7 +139,7 @@ ${prompt}
       .from("campaign_history")
       .insert({
         user_id: userId,
-        prompt,
+        prompt: `${businessType}: ${prompt}`,
         social_caption: parsed.socialCaption,
         whatsapp_promo: parsed.whatsappPromo,
         ad_copy: parsed.adCopy,
