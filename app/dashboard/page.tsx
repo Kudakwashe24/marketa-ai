@@ -60,7 +60,7 @@ function ResultCard({
         </button>
       </div>
 
-      <p className="mt-3 whitespace-pre-line text-slate-600">{content}</p>
+      <p className="mt-3 whitespace-pre-line text-slate-700">{content}</p>
     </div>
   );
 }
@@ -78,6 +78,10 @@ export default function DashboardPage() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [dailyIdea, setDailyIdea] = useState<DailyIdea | null>(null);
   const [isLoadingDailyIdea, setIsLoadingDailyIdea] = useState(true);
+  const [historySearch, setHistorySearch] = useState("");
+  const [isDeletingHistoryId, setIsDeletingHistoryId] = useState<number | null>(
+    null
+  );
 
   const fetchUsage = async () => {
     try {
@@ -97,9 +101,15 @@ export default function DashboardPage() {
     }
   };
 
-  const fetchHistory = async () => {
+  const fetchHistory = async (searchValue = historySearch) => {
     try {
-      const res = await fetch("/api/history");
+      setIsLoadingHistory(true);
+
+      const query = searchValue.trim()
+        ? `/api/history?search=${encodeURIComponent(searchValue.trim())}`
+        : "/api/history";
+
+      const res = await fetch(query);
       const data = await res.json();
 
       if (!res.ok) {
@@ -133,8 +143,9 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchUsage();
-    fetchHistory();
+    fetchHistory("");
     fetchDailyIdea();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleGenerateCampaign = async (e: FormEvent<HTMLFormElement>) => {
@@ -210,12 +221,45 @@ export default function DashboardPage() {
       marketingTip: item.marketing_tip,
     });
     setCopiedField(null);
+
+    const prefix = item.prompt.includes(":")
+      ? item.prompt.split(":")[0].trim()
+      : "Local Service Business";
+
+    setBusinessType(prefix);
   };
 
   const handleUseDailyIdea = () => {
     if (!dailyIdea) return;
     setPrompt(dailyIdea.idea);
     setResult(null);
+  };
+
+  const handleDeleteHistoryItem = async (id: number) => {
+    try {
+      setIsDeletingHistoryId(id);
+
+      const res = await fetch(`/api/history?id=${id}`, {
+        method: "DELETE",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to delete campaign.");
+      }
+
+      await fetchHistory();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsDeletingHistoryId(null);
+    }
+  };
+
+  const handleHistorySearchSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    await fetchHistory(historySearch);
   };
 
   const hasReachedLimit =
@@ -334,7 +378,7 @@ export default function DashboardPage() {
                     value={businessType}
                     onChange={(e) => setBusinessType(e.target.value)}
                     disabled={hasReachedLimit || isGenerating}
-                    className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900 disabled:cursor-not-allowed disabled:bg-slate-100"
+                    className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 outline-none focus:border-slate-900 disabled:cursor-not-allowed disabled:bg-slate-100"
                   >
                     <option>Salon / Barber</option>
                     <option>Restaurant / Food Business</option>
@@ -356,7 +400,7 @@ export default function DashboardPage() {
                       : "Type what you want to promote here..."
                   }
                   disabled={hasReachedLimit || isGenerating}
-                  className="min-h-[160px] w-full rounded-2xl border border-slate-300 px-4 py-4 outline-none focus:border-slate-900 disabled:cursor-not-allowed disabled:bg-slate-100"
+                  className="min-h-[160px] w-full rounded-2xl border border-slate-300 px-4 py-4 text-slate-900 placeholder-slate-400 outline-none focus:border-slate-900 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
                 />
 
                 <button
@@ -383,8 +427,8 @@ export default function DashboardPage() {
                   Your campaign results will appear here
                 </h3>
                 <p className="mt-2 text-sm text-slate-600">
-                  Type what you want to promote, generate your campaign, and copy
-                  the content into Instagram, Facebook, or WhatsApp.
+                  Type what you want to promote, generate your campaign, and
+                  copy the content into Instagram, Facebook, or WhatsApp.
                 </p>
               </div>
             )}
@@ -463,40 +507,95 @@ export default function DashboardPage() {
                 Recent Campaigns
               </h2>
               <p className="mt-2 text-sm text-slate-600">
-                Reuse your latest generated campaigns anytime.
+                Search, reuse, or delete your saved campaigns.
               </p>
+
+              <form
+                onSubmit={handleHistorySearchSubmit}
+                className="mt-5 flex gap-2"
+              >
+                <input
+                  type="text"
+                  value={historySearch}
+                  onChange={(e) => setHistorySearch(e.target.value)}
+                  placeholder="Search history..."
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 outline-none focus:border-slate-900"
+                />
+                <button
+                  type="submit"
+                  className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-medium text-white hover:bg-slate-700"
+                >
+                  Search
+                </button>
+              </form>
 
               <div className="mt-6 space-y-4">
                 {isLoadingHistory ? (
                   <p className="text-sm text-slate-500">Loading history...</p>
                 ) : history.length === 0 ? (
                   <p className="text-sm text-slate-500">
-                    No campaign history yet. Generate your first campaign to see
-                    it here.
+                    No matching campaign history yet.
                   </p>
                 ) : (
-                  history.map((item) => (
-                    <div
-                      key={item.id}
-                      className="rounded-2xl border border-slate-200 p-4"
-                    >
-                      <p className="line-clamp-2 text-sm font-medium text-slate-900">
-                        {item.prompt}
-                      </p>
+                  history.map((item) => {
+                    const businessLabel = item.prompt.includes(":")
+                      ? item.prompt.split(":")[0].trim()
+                      : "General";
 
-                      <p className="mt-2 text-xs text-slate-500">
-                        {new Date(item.created_at).toLocaleString()}
-                      </p>
+                    const promptLabel = item.prompt.includes(":")
+                      ? item.prompt.split(":").slice(1).join(":").trim()
+                      : item.prompt;
 
-                      <button
-                        type="button"
-                        onClick={() => handleReuseCampaign(item)}
-                        className="mt-3 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                    return (
+                      <div
+                        key={item.id}
+                        className="rounded-2xl border border-slate-200 p-4"
                       >
-                        View Campaign
-                      </button>
-                    </div>
-                  ))
+                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                          {businessLabel}
+                        </p>
+
+                        <p className="mt-2 line-clamp-2 text-sm font-medium text-slate-900">
+                          {promptLabel}
+                        </p>
+
+                        <p className="mt-2 text-xs text-slate-500">
+                          {new Date(item.created_at).toLocaleString()}
+                        </p>
+
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleReuseCampaign(item)}
+                            className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                          >
+                            View Campaign
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleCopy("historyPrompt", item.prompt)
+                            }
+                            className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                          >
+                            Copy Prompt
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteHistoryItem(item.id)}
+                            disabled={isDeletingHistoryId === item.id}
+                            className="rounded-lg border border-red-300 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {isDeletingHistoryId === item.id
+                              ? "Deleting..."
+                              : "Delete"}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
                 )}
               </div>
             </div>
