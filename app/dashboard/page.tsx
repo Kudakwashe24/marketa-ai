@@ -68,6 +68,7 @@ function ResultCard({
 export default function DashboardPage() {
   const [businessType, setBusinessType] = useState("Local Service Business");
   const [prompt, setPrompt] = useState("");
+  const [generatedPrompt, setGeneratedPrompt] = useState("");
   const [result, setResult] = useState<CampaignResult | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -82,6 +83,9 @@ export default function DashboardPage() {
   const [isDeletingHistoryId, setIsDeletingHistoryId] = useState<number | null>(
     null
   );
+  const [posterUrl, setPosterUrl] = useState<string | null>(null);
+  const [isGeneratingPoster, setIsGeneratingPoster] = useState(false);
+  const [posterError, setPosterError] = useState("");
 
   const fetchUsage = async () => {
     try {
@@ -158,8 +162,12 @@ export default function DashboardPage() {
       return;
     }
 
+    const currentPrompt = prompt.trim();
+
     setIsGenerating(true);
     setErrorMessage("");
+    setPosterError("");
+    setPosterUrl(null);
     setResult(null);
 
     try {
@@ -169,7 +177,7 @@ export default function DashboardPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          prompt,
+          prompt: currentPrompt,
           businessType,
         }),
       });
@@ -181,6 +189,7 @@ export default function DashboardPage() {
       }
 
       setResult(data);
+      setGeneratedPrompt(currentPrompt);
       setPrompt("");
       setCopiedField(null);
       await fetchUsage();
@@ -197,6 +206,48 @@ export default function DashboardPage() {
       await fetchUsage();
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleGeneratePoster = async () => {
+    if (!result || !generatedPrompt.trim()) return;
+
+    setIsGeneratingPoster(true);
+    setPosterError("");
+    setPosterUrl(null);
+
+    try {
+      const res = await fetch("/api/generate-poster", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          businessType,
+          prompt: generatedPrompt,
+          socialCaption: result.socialCaption,
+          whatsappPromo: result.whatsappPromo,
+          adCopy: result.adCopy,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to generate poster.");
+      }
+
+      setPosterUrl(data.imageUrl);
+    } catch (error: unknown) {
+      console.error(error);
+
+      if (error instanceof Error) {
+        setPosterError(error.message);
+      } else {
+        setPosterError("Failed to generate poster.");
+      }
+    } finally {
+      setIsGeneratingPoster(false);
     }
   };
 
@@ -221,18 +272,27 @@ export default function DashboardPage() {
       marketingTip: item.marketing_tip,
     });
     setCopiedField(null);
+    setPosterUrl(null);
+    setPosterError("");
 
     const prefix = item.prompt.includes(":")
       ? item.prompt.split(":")[0].trim()
       : "Local Service Business";
 
+    const promptText = item.prompt.includes(":")
+      ? item.prompt.split(":").slice(1).join(":").trim()
+      : item.prompt;
+
     setBusinessType(prefix);
+    setGeneratedPrompt(promptText);
   };
 
   const handleUseDailyIdea = () => {
     if (!dailyIdea) return;
     setPrompt(dailyIdea.idea);
     setResult(null);
+    setPosterUrl(null);
+    setPosterError("");
   };
 
   const handleDeleteHistoryItem = async (id: number) => {
@@ -443,13 +503,24 @@ export default function DashboardPage() {
 
             {result && (
               <>
-                <div className="mb-4 mt-10">
-                  <h2 className="text-2xl font-bold text-slate-900">
-                    Campaign Results
-                  </h2>
-                  <p className="mt-2 text-slate-600">
-                    Copy and use these results in your marketing channels.
-                  </p>
+                <div className="mb-4 mt-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <h2 className="text-2xl font-bold text-slate-900">
+                      Campaign Results
+                    </h2>
+                    <p className="mt-2 text-slate-600">
+                      Copy and use these results in your marketing channels.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleGeneratePoster}
+                    disabled={isGeneratingPoster || !generatedPrompt.trim()}
+                    className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isGeneratingPoster ? "Creating Poster..." : "Create Poster"}
+                  </button>
                 </div>
 
                 <section className="grid gap-6 md:grid-cols-2">
@@ -488,10 +559,48 @@ export default function DashboardPage() {
                   />
                 </section>
 
+                {posterError && (
+                  <p className="mt-6 text-sm text-red-600">{posterError}</p>
+                )}
+
+                {posterUrl && (
+                  <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                      <div>
+                        <h3 className="text-xl font-semibold text-slate-900">
+                          Poster Preview
+                        </h3>
+                        <p className="mt-2 text-sm text-slate-600">
+                          Ready-to-post promotional image for your campaign.
+                        </p>
+                      </div>
+
+                      <a
+                        href={posterUrl}
+                        download="marketa-poster.png"
+                        className="inline-block rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white hover:bg-slate-700"
+                      >
+                        Download Poster
+                      </a>
+                    </div>
+
+                    <img
+                      src={posterUrl}
+                      alt="Generated marketing poster"
+                      className="mx-auto w-full max-w-md rounded-2xl border border-slate-200"
+                    />
+                  </div>
+                )}
+
                 <div className="mt-8 text-center">
                   <button
                     type="button"
-                    onClick={() => setResult(null)}
+                    onClick={() => {
+                      setResult(null);
+                      setPosterUrl(null);
+                      setPosterError("");
+                      setGeneratedPrompt("");
+                    }}
                     className="rounded-xl border border-slate-300 px-6 py-3 font-medium text-slate-700 hover:bg-slate-50"
                   >
                     Generate Another Campaign
