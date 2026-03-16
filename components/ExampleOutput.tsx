@@ -3,10 +3,10 @@ export default function ExampleOutput() {
     <section id="example-output" className="mx-auto max-w-6xl px-6 py-20">
       <div className="mb-12">
         <h2 className="text-3xl font-bold text-slate-900 md:text-4xl">
-          Example campaign output
+          What Marketa AI creates for you
         </h2>
         <p className="mt-4 text-slate-600">
-          One prompt turns into a full campaign.
+          One promotion request turns into a complete mini marketing system.
         </p>
       </div>
 
@@ -14,40 +14,56 @@ export default function ExampleOutput() {
         <div className="mb-8 rounded-2xl bg-slate-50 p-4">
           <p className="text-sm font-medium text-slate-500">Prompt</p>
           <p className="mt-2 text-slate-800">
-            Promote my restaurant weekend burger special.
+            Business Type: Salon / Barber
+            <br />
+            Promotion: Promote my weekend braids special.
           </p>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
           <div className="rounded-2xl border border-slate-200 p-5">
-            <h3 className="font-semibold text-slate-900">Social Media Caption</h3>
+            <h3 className="font-semibold text-slate-900">
+              Social Media Caption
+            </h3>
             <p className="mt-3 text-sm leading-7 text-slate-600">
-              Make your weekend delicious with our burger special. Bring your
-              friends and enjoy great taste at a great price.
+              Weekend braids special now available ✨ Book your slot today and
+              refresh your look before Saturday and Sunday fill up.
             </p>
           </div>
 
           <div className="rounded-2xl border border-slate-200 p-5">
-            <h3 className="font-semibold text-slate-900">WhatsApp Promotion</h3>
+            <h3 className="font-semibold text-slate-900">
+              WhatsApp Promotion
+            </h3>
             <p className="mt-3 text-sm leading-7 text-slate-600">
-              Weekend burger special now available. Come through with friends or
-              family and enjoy an amazing meal. Visit us today.
+              Hi ladies 💜 We are running a weekend braids special. Limited
+              spaces available. Message us now to secure your booking.
             </p>
           </div>
 
           <div className="rounded-2xl border border-slate-200 p-5">
             <h3 className="font-semibold text-slate-900">Ad Copy</h3>
             <p className="mt-3 text-sm leading-7 text-slate-600">
-              Craving a great burger this weekend? Visit us for our special
-              offer and enjoy bold flavor at a great price.
+              Book your weekend braids special today. Fresh styles, limited
+              spaces, and beautiful results for your next look.
             </p>
           </div>
 
           <div className="rounded-2xl border border-slate-200 p-5">
             <h3 className="font-semibold text-slate-900">Marketing Tip</h3>
             <p className="mt-3 text-sm leading-7 text-slate-600">
-              Post a short burger preparation video on Instagram Stories to
-              create urgency and increase foot traffic.
+              Post a before-and-after client transformation to increase trust
+              and drive weekend bookings.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 p-5 md:col-span-2">
+            <h3 className="font-semibold text-slate-900">
+              Daily Marketing Idea
+            </h3>
+            <p className="mt-3 text-sm leading-7 text-slate-600">
+              Share a quick client reaction video after their hairstyle is done
+              and invite followers to book this weekend.
             </p>
           </div>
         </div>
