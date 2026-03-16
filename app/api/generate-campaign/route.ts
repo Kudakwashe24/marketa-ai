@@ -16,6 +16,13 @@ function getMonthKey() {
   return `${year}-${month}`;
 }
 
+type CampaignResult = {
+  socialCaption: string;
+  whatsappPromo: string;
+  adCopy: string;
+  marketingTip: string;
+};
+
 export async function POST(req: Request) {
   try {
     const { userId } = await auth();
@@ -92,7 +99,7 @@ ${prompt}
     });
 
     const text = response.text ?? "";
-    const parsed = JSON.parse(text.trim());
+    const parsed = JSON.parse(text.trim()) as CampaignResult;
 
     if (usageRow) {
       const { error: updateError } = await supabaseAdmin
@@ -118,6 +125,21 @@ ${prompt}
       if (insertError) {
         console.error("Usage insert error:", insertError);
       }
+    }
+
+    const { error: historyInsertError } = await supabaseAdmin
+      .from("campaign_history")
+      .insert({
+        user_id: userId,
+        prompt,
+        social_caption: parsed.socialCaption,
+        whatsapp_promo: parsed.whatsappPromo,
+        ad_copy: parsed.adCopy,
+        marketing_tip: parsed.marketingTip,
+      });
+
+    if (historyInsertError) {
+      console.error("History insert error:", historyInsertError);
     }
 
     return NextResponse.json(parsed);
