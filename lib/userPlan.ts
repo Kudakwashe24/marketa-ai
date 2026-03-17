@@ -1,9 +1,9 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { getPlanConfig, PlanConfig } from "@/lib/plans";
+import { PLAN_CONFIGS, PlanConfig, PlanKey } from "@/lib/plans";
 
 export async function getOrCreateUserPlan(
   userId: string
-): Promise<{ plan: string; config: PlanConfig }> {
+): Promise<{ plan: PlanKey; config: PlanConfig }> {
   const { data, error } = await supabaseAdmin
     .from("user_profiles")
     .select("plan")
@@ -15,9 +15,11 @@ export async function getOrCreateUserPlan(
   }
 
   if (data?.plan) {
+    const normalizedPlan = normalizePlan(data.plan);
+
     return {
-      plan: data.plan,
-      config: getPlanConfig(data.plan),
+      plan: normalizedPlan,
+      config: PLAN_CONFIGS[normalizedPlan],
     };
   }
 
@@ -34,8 +36,20 @@ export async function getOrCreateUserPlan(
     throw new Error("Failed to create user profile.");
   }
 
+  const normalizedPlan = normalizePlan(inserted.plan);
+
   return {
-    plan: inserted.plan,
-    config: getPlanConfig(inserted.plan),
+    plan: normalizedPlan,
+    config: PLAN_CONFIGS[normalizedPlan],
   };
+}
+
+function normalizePlan(plan: string): PlanKey {
+  const value = plan.toLowerCase();
+
+  if (value === "starter") return "starter";
+  if (value === "growth") return "growth";
+  if (value === "pro") return "pro";
+
+  return "free";
 }
