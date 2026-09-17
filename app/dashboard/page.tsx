@@ -4,6 +4,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { FormEvent, useEffect, useState } from "react";
 import { UserButton } from "@clerk/nextjs";
+import {
+  BUSINESS_TYPES,
+  OTHER_BUSINESS_TYPE,
+  getEffectiveBusinessType,
+  isListedBusinessType,
+} from "@/lib/businessTypes";
 
 type CampaignResult = {
   socialCaption: string;
@@ -71,6 +77,11 @@ const TEMPLATE_MAP: Record<string, string[]> = {
     "Promote affordable monthly repayment options",
     "Promote a featured vehicle deal this week",
   ],
+  "Car Wash / Detailing": [
+    "Promote a weekend car wash special",
+    "Promote our full interior and exterior detailing package",
+    "Promote a loyalty deal for returning customers",
+  ],
   "Home Services (Electrician, Plumber, etc.)": [
     "Promote discounted home repair services this week",
     "Promote same-day emergency callout services",
@@ -115,8 +126,10 @@ function ResultCard({
 
 export default function DashboardPage() {
   const [businessType, setBusinessType] = useState("Local Service Business");
+  const [customBusinessType, setCustomBusinessType] = useState("");
   const [prompt, setPrompt] = useState("");
   const [generatedPrompt, setGeneratedPrompt] = useState("");
+  const [generatedBusinessType, setGeneratedBusinessType] = useState("");
   const [result, setResult] = useState<CampaignResult | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -133,6 +146,33 @@ export default function DashboardPage() {
   const [posterUrl, setPosterUrl] = useState<string | null>(null);
   const [isGeneratingPoster, setIsGeneratingPoster] = useState(false);
   const [posterError, setPosterError] = useState("");
+
+  const effectiveBusinessType = getEffectiveBusinessType(
+    businessType,
+    customBusinessType
+  );
+
+  const fetchBusinessProfile = async () => {
+    try {
+      const res = await fetch("/api/business-profile");
+      if (!res.ok) return;
+
+      const data = await res.json();
+      const profile = data.profile;
+
+      if (!profile?.businessType) return;
+
+      if (profile.businessType === OTHER_BUSINESS_TYPE) {
+        setBusinessType(OTHER_BUSINESS_TYPE);
+        setCustomBusinessType(profile.customBusinessType ?? "");
+      } else if (isListedBusinessType(profile.businessType)) {
+        setBusinessType(profile.businessType);
+        setCustomBusinessType("");
+      }
+    } catch (error) {
+      console.error("Failed to load business profile:", error);
+    }
+  };
 
   const fetchUsage = async () => {
     try {
@@ -194,6 +234,7 @@ export default function DashboardPage() {
     fetchUsage();
     fetchHistory("");
     fetchDailyIdea();
+    fetchBusinessProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -201,6 +242,11 @@ export default function DashboardPage() {
     e.preventDefault();
 
     if (!prompt.trim()) return;
+
+    if (!effectiveBusinessType) {
+      setErrorMessage("Please tell us what type of business you run.");
+      return;
+    }
 
     if (
       usage &&
@@ -227,7 +273,7 @@ export default function DashboardPage() {
         },
         body: JSON.stringify({
           prompt: currentPrompt,
-          businessType,
+          businessType: effectiveBusinessType,
         }),
       });
 
@@ -239,6 +285,7 @@ export default function DashboardPage() {
 
       setResult(data);
       setGeneratedPrompt(currentPrompt);
+      setGeneratedBusinessType(effectiveBusinessType);
       setPrompt("");
       setCopiedField(null);
       await fetchUsage();
@@ -272,7 +319,7 @@ export default function DashboardPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          businessType,
+          businessType: generatedBusinessType || effectiveBusinessType,
           prompt: generatedPrompt,
           socialCaption: result.socialCaption,
           whatsappPromo: result.whatsappPromo,
@@ -333,7 +380,15 @@ export default function DashboardPage() {
       ? item.prompt.split(":").slice(1).join(":").trim()
       : item.prompt;
 
-    setBusinessType(prefix);
+    if (isListedBusinessType(prefix)) {
+      setBusinessType(prefix);
+      setCustomBusinessType("");
+    } else {
+      setBusinessType(OTHER_BUSINESS_TYPE);
+      setCustomBusinessType(prefix);
+    }
+
+    setGeneratedBusinessType(prefix);
     setGeneratedPrompt(promptText);
   };
 
@@ -379,7 +434,7 @@ export default function DashboardPage() {
 
   const posterGenerationLocked = usage !== null && usage.posterLimit === 0;
 
-  const selectedTemplates = TEMPLATE_MAP[businessType] ?? [];
+  const selectedTemplates = TEMPLATE_MAP[effectiveBusinessType] ?? [];
 
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-10">
@@ -394,7 +449,13 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/dashboard/business-profile"
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Business Profile
+            </Link>
             <UserButton />
           </div>
         </div>
@@ -562,15 +623,33 @@ export default function DashboardPage() {
                     disabled={campaignLimitReached || isGenerating}
                     className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 outline-none focus:border-slate-900 disabled:cursor-not-allowed disabled:bg-slate-100"
                   >
-                    <option>Salon / Barber</option>
-                    <option>Restaurant / Food Business</option>
-                    <option>Clothing Store / Boutique</option>
-                    <option>Freelancer / Personal Brand</option>
-                    <option>Car Dealership</option>
-                    <option>Home Services (Electrician, Plumber, etc.)</option>
-                    <option>Health & Wellness (Massage, Spa, Fitness)</option>
-                    <option>Local Service Business</option>
+                    {BUSINESS_TYPES.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
                   </select>
+
+                  {businessType === OTHER_BUSINESS_TYPE && (
+                    <div className="mt-3">
+                      <label className="block text-sm font-medium text-slate-700">
+                        Tell Marketa your business type
+                      </label>
+                      <input
+                        type="text"
+                        value={customBusinessType}
+                        onChange={(e) => setCustomBusinessType(e.target.value)}
+                        placeholder="Example: Car wash, bakery, photographer..."
+                        maxLength={80}
+                        disabled={campaignLimitReached || isGenerating}
+                        className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 placeholder-slate-400 outline-none focus:border-slate-900 disabled:cursor-not-allowed disabled:bg-slate-100"
+                      />
+                      <p className="mt-2 text-xs text-slate-500">
+                        Marketa will tailor the campaign even when your business
+                        is not in the list.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {usage?.templatesEnabled ? (
@@ -781,6 +860,7 @@ export default function DashboardPage() {
                       setPosterUrl(null);
                       setPosterError("");
                       setGeneratedPrompt("");
+                      setGeneratedBusinessType("");
                     }}
                     className="rounded-xl border border-slate-300 px-6 py-3 font-medium text-slate-700 hover:bg-slate-50"
                   >

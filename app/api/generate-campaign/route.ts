@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getGeminiClient } from "@/lib/gemini";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { getOrCreateUserPlan } from "@/lib/userPlan";
+import { getBusinessProfile } from "@/lib/businessProfile";
 
 function getMonthKey() {
   const now = new Date();
@@ -31,7 +32,26 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     const prompt = body.prompt;
-    const businessType = body.businessType || "Local Service Business";
+    const requestedBusinessType =
+      typeof body.businessType === "string"
+        ? body.businessType.trim().slice(0, 100)
+        : "";
+
+    let businessProfile: Awaited<ReturnType<typeof getBusinessProfile>> = null;
+
+    try {
+      businessProfile = await getBusinessProfile(userId);
+    } catch (profileError) {
+      // Campaign generation remains available while a new installation is
+      // waiting for the business profile migration to be applied.
+      console.warn("Business profile unavailable:", profileError);
+    }
+
+    const businessType =
+      requestedBusinessType ||
+      businessProfile?.customBusinessType ||
+      businessProfile?.businessType ||
+      "Local Service Business";
 
     if (!prompt || typeof prompt !== "string") {
       return NextResponse.json(
@@ -80,7 +100,18 @@ ${businessType}
 Promotion request:
 ${prompt}
 
-Generate marketing content tailored specifically for this type of business.
+Saved business profile:
+- Business name: ${businessProfile?.businessName || "Not provided"}
+- Description: ${businessProfile?.description || "Not provided"}
+- Target audience: ${businessProfile?.targetAudience || "Not provided"}
+- Location: ${businessProfile?.location || "Not provided"}
+- Phone or WhatsApp: ${businessProfile?.phone || "Not provided"}
+- Website: ${businessProfile?.website || "Not provided"}
+- Instagram: ${businessProfile?.instagram || "Not provided"}
+- Brand voice: ${businessProfile?.brandVoice || "Professional and friendly"}
+- Preferred call to action: ${businessProfile?.preferredCta || "Not provided"}
+
+Generate marketing content tailored specifically for this business and its customers.
 
 Return valid JSON with these exact fields:
 
@@ -95,6 +126,8 @@ Rules:
 - Keep the tone professional, simple, and practical
 - Make the content relevant to the business type
 - Make the output useful for small businesses
+- Use the saved business name, location, contact details, and preferred call to action naturally when relevant
+- Never invent contact details, prices, locations, opening hours, or claims that were not provided
 - No markdown
 - No code fences
 - Return JSON only
