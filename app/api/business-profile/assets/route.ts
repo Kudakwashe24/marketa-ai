@@ -9,6 +9,29 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 const BUCKET = "brand-assets";
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
+const PROFILE_SELECT =
+  "user_id, business_name, business_type, custom_business_type, description, target_audience, location, phone, website, instagram, brand_voice, primary_color, secondary_color, preferred_cta, logo_url, brand_images";
+
+function getOwnedObjectPath(url: string, userId: string) {
+  try {
+    const projectUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (!projectUrl) return null;
+
+    const assetUrl = new URL(url);
+    const expectedHost = new URL(projectUrl).host;
+    const marker = `/storage/v1/object/public/${BUCKET}/`;
+
+    if (assetUrl.host !== expectedHost || !assetUrl.pathname.includes(marker)) {
+      return null;
+    }
+
+    const encodedPath = assetUrl.pathname.split(marker)[1] ?? "";
+    const objectPath = decodeURIComponent(encodedPath);
+    return objectPath.startsWith(`${userId}/`) ? objectPath : null;
+  } catch {
+    return null;
+  }
+}
 
 async function ensureBucket() {
   const supabaseAdmin = getSupabaseAdmin();
@@ -112,9 +135,7 @@ export async function POST(req: Request) {
         },
         { onConflict: "user_id" }
       )
-      .select(
-        "user_id, business_name, business_type, custom_business_type, description, target_audience, location, phone, website, instagram, brand_voice, primary_color, secondary_color, preferred_cta, logo_url, brand_images"
-      )
+      .select(PROFILE_SELECT)
       .single();
 
     if (error || !data) {
@@ -129,6 +150,87 @@ export async function POST(req: Request) {
     console.error("Brand asset upload error:", error);
     return NextResponse.json(
       { error: "Failed to upload image." },
+      { status: 500 }
+    );
+  }
+}
+
+
+export async function DELETE(req: Request) {
+  try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const assetType = body.assetType;
+    const url = typeof body.url === "string" ? body.url : "";
+
+    if ((assetType !== "logo" && assetType !== "photo") || !url) {
+      return NextResponse.json(
+        { error: "Choose a valid brand asset to remove." },
+        { status: 400 }
+      );
+    }
+
+    const currentProfile = await getBusinessProfile(userId);
+    if (!currentProfile) {
+      return NextResponse.json(
+        { error: "Business profile not found." },
+        { status: 404 }
+      );
+    }
+
+    const assetBelongsToProfile =
+      assetType === "logo"
+        ? currentProfile.logoUrl === url
+        : currentProfile.brandImages.includes(url);
+    const objectPath = getOwnedObjectPath(url, userId);
+
+    if (!assetBelongsToProfile || !objectPath) {
+      return NextResponse.json(
+        { error: "This brand asset cannot be removed." },
+        { status: 403 }
+      );
+    }
+
+    const supabaseAdmin = getSupabaseAdmin();
+    const { error: storageError } = await supabaseAdmin.storage
+      .from(BUCKET)
+      .remove([objectPath]);
+
+    if (storageError) throw storageError;
+
+    const update =
+      assetType === "logo"
+        ? { logo_url: null }
+        : {
+            brand_images: currentProfile.brandImages.filter(
+              (imageUrl) => imageUrl !== url
+            ),
+          };
+
+    const { data, error } = await supabaseAdmin
+      .from("business_profiles")
+      .update({
+        ...update,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", userId)
+      .select(PROFILE_SELECT)
+      .single();
+
+    if (error || !data) {
+      throw error ?? new Error("Failed to update the brand kit.");
+    }
+
+    return NextResponse.json({ profile: mapBusinessProfile(data) });
+  } catch (error) {
+    console.error("Brand asset removal error:", error);
+    return NextResponse.json(
+      { error: "Failed to remove image." },
       { status: 500 }
     );
   }
