@@ -298,7 +298,7 @@ export default function DashboardPage() {
       await fetchUsage();
       await fetchHistory();
     } catch (error: unknown) {
-      console.error(error);
+      console.warn("Campaign generation unavailable:", error);
 
       if (error instanceof Error) {
         setErrorMessage(error.message);
