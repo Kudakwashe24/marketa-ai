@@ -19,6 +19,68 @@ type CampaignResult = {
   marketingTip: string;
 };
 
+function parseCampaignResult(text: string): CampaignResult {
+  const withoutFences = text
+    .trim()
+    .replace(/^\`\`\`(?:json)?\s*/i, "")
+    .replace(/\s*\`\`\`$/i, "");
+  const start = withoutFences.indexOf("{");
+  const end = withoutFences.lastIndexOf("}");
+
+  if (start === -1 || end === -1 || end < start) {
+    throw new Error("Gemini did not return a JSON object.");
+  }
+
+  const parsed = JSON.parse(
+    withoutFences.slice(start, end + 1)
+  ) as Partial<CampaignResult>;
+  const fields: Array<keyof CampaignResult> = [
+    "socialCaption",
+    "whatsappPromo",
+    "adCopy",
+    "marketingTip",
+  ];
+
+  for (const field of fields) {
+    if (typeof parsed[field] !== "string" || !parsed[field]?.trim()) {
+      throw new Error(`Gemini returned an invalid ${field}.`);
+    }
+  }
+
+  return parsed as CampaignResult;
+}
+
+function createFallbackCampaign({
+  businessName,
+  businessType,
+  prompt,
+  preferredCta,
+  phone,
+  website,
+  instagram,
+}: {
+  businessName: string;
+  businessType: string;
+  prompt: string;
+  preferredCta: string;
+  phone: string;
+  website: string;
+  instagram: string;
+}): CampaignResult {
+  const name = businessName || businessType;
+  const cta = preferredCta || "Contact us today";
+  const contact = phone || website || instagram;
+  const contactText = contact ? ` ${contact}` : "";
+
+  return {
+    socialCaption: `${prompt}\n\n${name} is ready to help. ${cta}.${contactText}\n\n#SmallBusiness #SupportLocal`,
+    whatsappPromo: `Hi! ${name} has an offer for you: ${prompt} ${cta}.${contactText}`,
+    adCopy: `${prompt}\n\nChoose ${name} for your ${businessType.toLowerCase()} needs. ${cta}.`,
+    marketingTip:
+      "Share this campaign on your social feed and WhatsApp Status, then follow up with anyone who replies or asks for more information.",
+  };
+}
+
 export async function POST(req: Request) {
   try {
     const { userId } = await auth();
@@ -133,13 +195,30 @@ Rules:
 - Return JSON only
 `;
 
-    const response = await getGeminiClient().models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: fullPrompt,
-    });
+    let parsed: CampaignResult;
 
-    const text = response.text ?? "";
-    const parsed = JSON.parse(text.trim()) as CampaignResult;
+    try {
+      const response = await getGeminiClient().models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: fullPrompt,
+        config: {
+          responseMimeType: "application/json",
+        },
+      });
+
+      parsed = parseCampaignResult(response.text ?? "");
+    } catch (generationError) {
+      console.warn("Using fallback campaign:", generationError);
+      parsed = createFallbackCampaign({
+        businessName: businessProfile?.businessName || "",
+        businessType,
+        prompt: prompt.trim(),
+        preferredCta: businessProfile?.preferredCta || "",
+        phone: businessProfile?.phone || "",
+        website: businessProfile?.website || "",
+        instagram: businessProfile?.instagram || "",
+      });
+    }
 
     if (usageRow) {
       const { error: updateError } = await supabaseAdmin
