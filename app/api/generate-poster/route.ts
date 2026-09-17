@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { getGeminiClient } from "@/lib/gemini";
+import { getGeminiApiKey } from "@/lib/gemini";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { getOrCreateUserPlan } from "@/lib/userPlan";
 
@@ -10,6 +10,16 @@ function getMonthKey() {
   const month = String(now.getUTCMonth() + 1).padStart(2, "0");
   return `${year}-${month}`;
 }
+
+type GeminiImageInteraction = {
+  output_image?: {
+    data?: string;
+    mime_type?: string;
+  };
+  error?: {
+    message?: string;
+  };
+};
 
 export async function POST(req: Request) {
   try {
@@ -98,28 +108,62 @@ Poster requirements:
 - bold headline
 - short supporting text
 - clean layout with strong visual hierarchy
-- suitable for Instagram or Facebook post
+- suitable for Instagram or Facebook
 - no logo
 - use visually appealing colors
 - make it look like a ready-to-post promotional graphic
 - keep text minimal and readable
-- include a call to action
+- include a clear call to action
 
-Return an image.
+Return one image only.
 `;
 
-    const response = await getGeminiClient().models.generateContent({
-      model: "gemini-2.5-flash-image",
-      contents: posterPrompt,
-    });
+    const geminiResponse = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/interactions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": getGeminiApiKey(),
+        },
+        body: JSON.stringify({
+          model: "gemini-3.1-flash-lite-image",
+          input: posterPrompt,
+          response_format: {
+            type: "image",
+            mime_type: "image/png",
+            aspect_ratio: "1:1",
+            image_size: "1K",
+          },
+        }),
+      }
+    );
 
-    const parts = response.candidates?.[0]?.content?.parts ?? [];
-    const imagePart = parts.find((part) => part.inlineData);
+    const imageResult =
+      (await geminiResponse.json()) as GeminiImageInteraction;
 
-    if (!imagePart?.inlineData?.data || !imagePart.inlineData.mimeType) {
+    if (!geminiResponse.ok) {
+      console.error("Gemini image API error:", {
+        status: geminiResponse.status,
+        message: imageResult.error?.message,
+      });
+
+      return NextResponse.json(
+        {
+          error:
+            "Poster generation is temporarily unavailable. Please try again.",
+        },
+        { status: 502 }
+      );
+    }
+
+    const imageBase64 = imageResult.output_image?.data;
+    const mimeType = imageResult.output_image?.mime_type || "image/png";
+
+    if (!imageBase64) {
       return NextResponse.json(
         { error: "No image was generated." },
-        { status: 500 }
+        { status: 502 }
       );
     }
 
@@ -149,8 +193,6 @@ Return an image.
       }
     }
 
-    const imageBase64 = imagePart.inlineData.data;
-    const mimeType = imagePart.inlineData.mimeType;
     const imageUrl = `data:${mimeType};base64,${imageBase64}`;
 
     return NextResponse.json({ imageUrl });
