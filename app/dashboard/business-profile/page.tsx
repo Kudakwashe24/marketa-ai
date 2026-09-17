@@ -153,7 +153,11 @@ export default function BusinessProfilePage() {
         throw new Error(data.error || "Failed to upload image.");
       }
 
-      setProfile({ ...EMPTY_PROFILE, ...data.profile });
+      setProfile((current) => ({
+        ...current,
+        logoUrl: data.profile?.logoUrl ?? current.logoUrl,
+        brandImages: data.profile?.brandImages ?? current.brandImages,
+      }));
       setMessage(assetType === "logo" ? "Logo uploaded." : "Brand photo added.");
     } catch (error) {
       setErrorMessage(
