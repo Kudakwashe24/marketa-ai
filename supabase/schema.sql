@@ -48,4 +48,4 @@ alter table public.poster_usage enable row level security;
 alter table public.campaign_history enable row level security;
 
 -- Marketa accesses these tables only from authenticated Next.js API routes
--- using the Supabase service-role key. No browser-facing policies are needed.
+-- using a Supabase secret key. No browser-facing policies are needed.

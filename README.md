@@ -25,10 +25,10 @@ Marketa AI is an AI marketing assistant for small businesses. It turns a short p
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk browser key |
 | `CLERK_SECRET_KEY` | Clerk server key |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server-only Supabase key |
+| `SUPABASE_SECRET_KEY` | Server-only Supabase secret key |
 | `GEMINI_API_KEY` | Gemini text and image generation |
 
-Never expose `SUPABASE_SERVICE_ROLE_KEY` in browser code or commit real secrets.
+Never expose `SUPABASE_SECRET_KEY` in browser code or commit real secrets.
 
 ## Commands
 
