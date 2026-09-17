@@ -61,6 +61,7 @@ export default function BusinessProfilePage() {
   const [uploadingAsset, setUploadingAsset] = useState<"logo" | "photo" | null>(
     null
   );
+  const [removingAsset, setRemovingAsset] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -165,6 +166,44 @@ export default function BusinessProfilePage() {
       );
     } finally {
       setUploadingAsset(null);
+    }
+  };
+
+  const handleRemoveAsset = async (
+    assetType: "logo" | "photo",
+    url: string
+  ) => {
+    const label = assetType === "logo" ? "logo" : "photo";
+    if (!window.confirm(`Remove this ${label} from your Brand Kit?`)) return;
+
+    setRemovingAsset(url);
+    setMessage("");
+    setErrorMessage("");
+
+    try {
+      const res = await fetch("/api/business-profile/assets", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assetType, url }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || `Failed to remove ${label}.`);
+      }
+
+      setProfile((current) => ({
+        ...current,
+        logoUrl: data.profile?.logoUrl ?? "",
+        brandImages: data.profile?.brandImages ?? current.brandImages,
+      }));
+      setMessage(assetType === "logo" ? "Logo removed." : "Brand photo removed.");
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : `Failed to remove ${label}.`
+      );
+    } finally {
+      setRemovingAsset(null);
     }
   };
 
@@ -415,16 +454,30 @@ export default function BusinessProfilePage() {
                   </div>
                 )}
 
-                <label className="mt-4 inline-block cursor-pointer rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700">
-                  {uploadingAsset === "logo" ? "Uploading..." : "Upload Logo"}
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp"
-                    disabled={uploadingAsset !== null}
-                    onChange={(e) => handleUpload(e, "logo")}
-                    className="hidden"
-                  />
-                </label>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <label className="inline-block cursor-pointer rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700">
+                    {uploadingAsset === "logo" ? "Uploading..." : "Upload Logo"}
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      disabled={uploadingAsset !== null || removingAsset !== null}
+                      onChange={(e) => handleUpload(e, "logo")}
+                      className="hidden"
+                    />
+                  </label>
+                  {profile.logoUrl && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveAsset("logo", profile.logoUrl)}
+                      disabled={removingAsset !== null}
+                      className="rounded-xl border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {removingAsset === profile.logoUrl
+                        ? "Removing..."
+                        : "Remove Logo"}
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="rounded-2xl border border-dashed border-slate-300 p-5">
@@ -435,15 +488,25 @@ export default function BusinessProfilePage() {
                 {profile.brandImages.length > 0 ? (
                   <div className="mt-4 grid grid-cols-3 gap-3">
                     {profile.brandImages.map((url) => (
-                      <Image
-                        key={url}
-                        src={url}
-                        alt="Brand asset"
-                        width={180}
-                        height={180}
-                        unoptimized
-                        className="aspect-square w-full rounded-xl object-cover"
-                      />
+                      <div key={url} className="group relative">
+                        <Image
+                          src={url}
+                          alt="Brand asset"
+                          width={180}
+                          height={180}
+                          unoptimized
+                          className="aspect-square w-full rounded-xl object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveAsset("photo", url)}
+                          disabled={removingAsset !== null}
+                          aria-label="Remove brand photo"
+                          className="absolute right-2 top-2 rounded-full bg-white/95 px-2.5 py-1 text-xs font-semibold text-red-600 shadow hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {removingAsset === url ? "..." : "Remove"}
+                        </button>
+                      </div>
                     ))}
                   </div>
                 ) : (
@@ -458,7 +521,7 @@ export default function BusinessProfilePage() {
                   <input
                     type="file"
                     accept="image/png,image/jpeg,image/webp"
-                    disabled={uploadingAsset !== null}
+                    disabled={uploadingAsset !== null || removingAsset !== null}
                     onChange={(e) => handleUpload(e, "photo")}
                     className="hidden"
                   />
@@ -470,7 +533,9 @@ export default function BusinessProfilePage() {
           <div className="flex flex-wrap items-center gap-4">
             <button
               type="submit"
-              disabled={isSaving || uploadingAsset !== null}
+              disabled={
+                isSaving || uploadingAsset !== null || removingAsset !== null
+              }
               className="rounded-xl bg-slate-900 px-6 py-3 font-medium text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSaving ? "Saving..." : "Save Business Profile"}
