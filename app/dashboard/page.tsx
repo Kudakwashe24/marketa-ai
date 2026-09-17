@@ -224,7 +224,7 @@ export default function DashboardPage() {
 
       setDailyIdea(data);
     } catch (error) {
-      console.error(error);
+      console.warn("Daily idea unavailable:", error);
     } finally {
       setIsLoadingDailyIdea(false);
     }
