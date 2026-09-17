@@ -1,12 +1,8 @@
-import { GoogleGenAI } from "@google/genai";
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { getGeminiClient } from "@/lib/gemini";
 import { PLAN_CONFIGS } from "@/lib/plans";
 import { getOrCreateUserPlan } from "@/lib/userPlan";
-
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY!,
-});
 
 export async function GET(req: Request) {
   try {
@@ -66,7 +62,7 @@ Return this exact JSON shape:
 }
 `;
 
-    const response = await ai.models.generateContent({
+    const response = await getGeminiClient().models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
     });

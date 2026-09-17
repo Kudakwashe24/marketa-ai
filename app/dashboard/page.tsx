@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { FormEvent, useEffect, useState } from "react";
 import { UserButton } from "@clerk/nextjs";
 
@@ -121,7 +122,6 @@ export default function DashboardPage() {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [usage, setUsage] = useState<UsageData | null>(null);
-  const [isLoadingUsage, setIsLoadingUsage] = useState(true);
   const [history, setHistory] = useState<CampaignHistoryItem[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [dailyIdea, setDailyIdea] = useState<DailyIdea | null>(null);
@@ -147,8 +147,6 @@ export default function DashboardPage() {
     } catch (error) {
       console.error(error);
       setErrorMessage("Failed to check usage.");
-    } finally {
-      setIsLoadingUsage(false);
     }
   };
 
@@ -764,9 +762,12 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
-                    <img
+                    <Image
                       src={posterUrl}
                       alt="Generated marketing poster"
+                      width={1024}
+                      height={1024}
+                      unoptimized
                       className="mx-auto w-full max-w-md rounded-2xl border border-slate-200"
                     />
                   </div>

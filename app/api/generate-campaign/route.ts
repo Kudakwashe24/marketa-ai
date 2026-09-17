@@ -1,12 +1,8 @@
-import { GoogleGenAI } from "@google/genai";
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getGeminiClient } from "@/lib/gemini";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { getOrCreateUserPlan } from "@/lib/userPlan";
-
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY!,
-});
 
 function getMonthKey() {
   const now = new Date();
@@ -31,6 +27,7 @@ export async function POST(req: Request) {
     }
 
     const { config, plan } = await getOrCreateUserPlan(userId);
+    const supabaseAdmin = getSupabaseAdmin();
 
     const body = await req.json();
     const prompt = body.prompt;
@@ -103,7 +100,7 @@ Rules:
 - Return JSON only
 `;
 
-    const response = await ai.models.generateContent({
+    const response = await getGeminiClient().models.generateContent({
       model: "gemini-2.5-flash",
       contents: fullPrompt,
     });

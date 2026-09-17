@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { getOrCreateUserPlan } from "@/lib/userPlan";
 
 function getMonthKey() {
@@ -19,6 +19,7 @@ export async function GET() {
     }
 
     const { plan, config } = await getOrCreateUserPlan(userId);
+    const supabaseAdmin = getSupabaseAdmin();
     const monthKey = getMonthKey();
 
     const { data: campaignData, error: campaignError } = await supabaseAdmin

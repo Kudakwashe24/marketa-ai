@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { getOrCreateUserPlan } from "@/lib/userPlan";
 
 export async function GET(req: Request) {
@@ -12,6 +12,7 @@ export async function GET(req: Request) {
     }
 
     const { config } = await getOrCreateUserPlan(userId);
+    const supabaseAdmin = getSupabaseAdmin();
 
     const { searchParams } = new URL(req.url);
     const search = searchParams.get("search")?.trim() || "";
@@ -66,6 +67,7 @@ export async function DELETE(req: Request) {
     }
 
     const { config } = await getOrCreateUserPlan(userId);
+    const supabaseAdmin = getSupabaseAdmin();
 
     if (!config.advancedHistoryEnabled) {
       return NextResponse.json(

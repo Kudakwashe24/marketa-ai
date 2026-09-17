@@ -1,9 +1,10 @@
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { PLAN_CONFIGS, PlanConfig, PlanKey } from "@/lib/plans";
 
 export async function getOrCreateUserPlan(
   userId: string
 ): Promise<{ plan: PlanKey; config: PlanConfig }> {
+  const supabaseAdmin = getSupabaseAdmin();
   const { data, error } = await supabaseAdmin
     .from("user_profiles")
     .select("plan")
