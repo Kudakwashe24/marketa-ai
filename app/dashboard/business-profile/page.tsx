@@ -327,7 +327,7 @@ export default function BusinessProfilePage() {
               Brand personality
             </h2>
             <p className="mt-2 text-sm text-slate-600">
-              These choices guide Marketa's writing style and future posters.
+              These choices guide Marketa&apos;s writing style and future posters.
             </p>
 
             <div className="mt-6 grid gap-5 md:grid-cols-2">
