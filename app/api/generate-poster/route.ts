@@ -1,8 +1,10 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { getGeminiApiKey } from "@/lib/gemini";
+import { getBusinessProfile } from "@/lib/businessProfile";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { getOrCreateUserPlan } from "@/lib/userPlan";
+
+const POSTER_TEMPLATES = new Set(["bold", "clean", "photo"]);
 
 function getMonthKey() {
   const now = new Date();
@@ -11,15 +13,31 @@ function getMonthKey() {
   return `${year}-${month}`;
 }
 
-type GeminiImageInteraction = {
-  output_image?: {
-    data?: string;
-    mime_type?: string;
-  };
-  error?: {
-    message?: string;
-  };
-};
+function cleanText(value: unknown, maxLength: number) {
+  return String(value ?? "")
+    .replace(/[#*_`]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength);
+}
+
+function getHeadline(adCopy: string, prompt: string) {
+  const adHeadline = adCopy
+    .split(/\n+/)
+    .map((line) => cleanText(line, 90))
+    .find((line) => line.length >= 4 && line.length <= 90);
+
+  const fallback = cleanText(prompt, 90).replace(/^promote\s+/i, "");
+  return adHeadline || fallback || "A special offer for you";
+}
+
+function getSupportingText(socialCaption: string, whatsappPromo: string) {
+  const source = whatsappPromo || socialCaption;
+  return (
+    cleanText(source.replace(/(?:^|\s)#[\p{L}\p{N}_-]+/gu, ""), 190) ||
+    "Discover our latest offer and get in touch today."
+  );
+}
 
 export async function POST(req: Request) {
   try {
@@ -31,17 +49,6 @@ export async function POST(req: Request) {
 
     const { config, plan } = await getOrCreateUserPlan(userId);
     const supabaseAdmin = getSupabaseAdmin();
-
-    if (config.posterLimit === 0) {
-      return NextResponse.json(
-        {
-          error: `${config.name} plan does not include poster generation.`,
-          plan,
-        },
-        { status: 403 }
-      );
-    }
-
     const monthKey = getMonthKey();
 
     const { data: usageRow, error: usageError } = await supabaseAdmin
@@ -73,99 +80,47 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
+    const prompt = cleanText(body.prompt, 500);
+    const socialCaption = cleanText(body.socialCaption, 2_000);
+    const whatsappPromo = cleanText(body.whatsappPromo, 2_000);
+    const adCopy = String(body.adCopy ?? "").trim().slice(0, 2_000);
 
-    const businessType = body.businessType || "Local Service Business";
-    const prompt = body.prompt || "";
-    const socialCaption = body.socialCaption || "";
-    const whatsappPromo = body.whatsappPromo || "";
-    const adCopy = body.adCopy || "";
-
-    if (!prompt.trim()) {
+    if (!prompt) {
       return NextResponse.json(
-        { error: "Prompt is required to generate a poster." },
+        { error: "Generate a campaign before creating a poster." },
         { status: 400 }
       );
     }
 
-    const posterPrompt = `
-Create a clean, modern, professional square social media marketing poster for a small business.
+    const requestedTemplate = String(body.template ?? "bold");
+    const template = POSTER_TEMPLATES.has(requestedTemplate)
+      ? requestedTemplate
+      : "bold";
+    const profile = await getBusinessProfile(userId);
+    const fallbackBusinessType = cleanText(body.businessType, 120);
 
-Business type:
-${businessType}
-
-Promotion:
-${prompt}
-
-Reference campaign content:
-Social caption: ${socialCaption}
-WhatsApp promo: ${whatsappPromo}
-Ad copy: ${adCopy}
-
-Poster requirements:
-- 1:1 square social media poster
-- modern and eye-catching design
-- professional business marketing style
-- bold headline
-- short supporting text
-- clean layout with strong visual hierarchy
-- suitable for Instagram or Facebook
-- no logo
-- use visually appealing colors
-- make it look like a ready-to-post promotional graphic
-- keep text minimal and readable
-- include a clear call to action
-
-Return one image only.
-`;
-
-    const geminiResponse = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/interactions",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": getGeminiApiKey(),
-        },
-        body: JSON.stringify({
-          model: "gemini-3.1-flash-lite-image",
-          input: posterPrompt,
-          response_format: {
-            type: "image",
-            mime_type: "image/png",
-            aspect_ratio: "1:1",
-            image_size: "1K",
-          },
-        }),
-      }
-    );
-
-    const imageResult =
-      (await geminiResponse.json()) as GeminiImageInteraction;
-
-    if (!geminiResponse.ok) {
-      console.error("Gemini image API error:", {
-        status: geminiResponse.status,
-        message: imageResult.error?.message,
-      });
-
-      return NextResponse.json(
-        {
-          error:
-            "Poster generation is temporarily unavailable. Please try again.",
-        },
-        { status: 502 }
-      );
-    }
-
-    const imageBase64 = imageResult.output_image?.data;
-    const mimeType = imageResult.output_image?.mime_type || "image/png";
-
-    if (!imageBase64) {
-      return NextResponse.json(
-        { error: "No image was generated." },
-        { status: 502 }
-      );
-    }
+    const poster = {
+      template,
+      businessName:
+        profile?.businessName || fallbackBusinessType || "Your Business",
+      businessType:
+        profile?.customBusinessType ||
+        profile?.businessType ||
+        fallbackBusinessType ||
+        "Local Business",
+      headline: getHeadline(adCopy, prompt),
+      supportingText: getSupportingText(socialCaption, whatsappPromo),
+      cta: profile?.preferredCta || "Contact us today",
+      phone: profile?.phone || "",
+      instagram: profile?.instagram || "",
+      website: profile?.website || "",
+      location: profile?.location || "",
+      primaryColor: profile?.primaryColor || "#4f46e5",
+      secondaryColor: profile?.secondaryColor || "#0f172a",
+      logoUrl: profile?.logoUrl || "",
+      brandImageUrl: profile?.brandImages[0] || "",
+      watermark: plan === "free",
+    };
 
     if (usageRow) {
       const { error: updateError } = await supabaseAdmin
@@ -176,9 +131,7 @@ Return one image only.
         })
         .eq("id", usageRow.id);
 
-      if (updateError) {
-        console.error("Poster usage update error:", updateError);
-      }
+      if (updateError) throw updateError;
     } else {
       const { error: insertError } = await supabaseAdmin
         .from("poster_usage")
@@ -188,19 +141,14 @@ Return one image only.
           usage_count: 1,
         });
 
-      if (insertError) {
-        console.error("Poster usage insert error:", insertError);
-      }
+      if (insertError) throw insertError;
     }
 
-    const imageUrl = `data:${mimeType};base64,${imageBase64}`;
-
-    return NextResponse.json({ imageUrl });
+    return NextResponse.json({ poster });
   } catch (error) {
-    console.error("Poster generation error:", error);
-
+    console.error("Template poster generation error:", error);
     return NextResponse.json(
-      { error: "Failed to generate poster." },
+      { error: "Failed to create your branded poster." },
       { status: 500 }
     );
   }

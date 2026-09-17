@@ -10,6 +10,11 @@ import {
   getEffectiveBusinessType,
   isListedBusinessType,
 } from "@/lib/businessTypes";
+import {
+  PosterTemplate,
+  TemplatePosterData,
+  renderTemplatePoster,
+} from "@/lib/templatePoster";
 
 type CampaignResult = {
   socialCaption: string;
@@ -146,6 +151,8 @@ export default function DashboardPage() {
   const [posterUrl, setPosterUrl] = useState<string | null>(null);
   const [isGeneratingPoster, setIsGeneratingPoster] = useState(false);
   const [posterError, setPosterError] = useState("");
+  const [posterTemplate, setPosterTemplate] =
+    useState<PosterTemplate>("bold");
 
   const effectiveBusinessType = getEffectiveBusinessType(
     businessType,
@@ -324,6 +331,7 @@ export default function DashboardPage() {
           socialCaption: result.socialCaption,
           whatsappPromo: result.whatsappPromo,
           adCopy: result.adCopy,
+          template: posterTemplate,
         }),
       });
 
@@ -333,7 +341,10 @@ export default function DashboardPage() {
         throw new Error(data.error || "Failed to generate poster.");
       }
 
-      setPosterUrl(data.imageUrl);
+      const imageUrl = await renderTemplatePoster(
+        data.poster as TemplatePosterData
+      );
+      setPosterUrl(imageUrl);
       await fetchUsage();
     } catch (error: unknown) {
       console.error(error);
@@ -432,7 +443,10 @@ export default function DashboardPage() {
     usage.campaignLimit !== -1 &&
     usage.campaignUsageCount >= usage.campaignLimit;
 
-  const posterGenerationLocked = usage !== null && usage.posterLimit === 0;
+  const posterLimitReached =
+    usage !== null &&
+    usage.posterLimit !== -1 &&
+    usage.posterUsageCount >= usage.posterLimit;
 
   const selectedTemplates = TEMPLATE_MAP[effectiveBusinessType] ?? [];
 
@@ -538,8 +552,8 @@ export default function DashboardPage() {
             </h2>
 
             <p className="mt-2 text-sm text-indigo-800">
-              Upgrade your plan to generate more campaigns, create posters, and
-              unlock campaign templates.
+              Upgrade your plan to generate more campaigns and posters, remove
+              the Marketa watermark, and unlock campaign templates.
             </p>
 
             <Link
@@ -747,10 +761,9 @@ export default function DashboardPage() {
                     </p>
                   </div>
 
-                  {posterGenerationLocked ? (
+                  {posterLimitReached ? (
                     <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                      Poster generation is available on Starter, Growth, and Pro
-                      plans.
+                      You have reached your monthly poster limit.
                       <Link
                         href="/pricing"
                         className="ml-2 font-semibold underline"
@@ -759,14 +772,31 @@ export default function DashboardPage() {
                       </Link>
                     </div>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={handleGeneratePoster}
-                      disabled={isGeneratingPoster || !generatedPrompt.trim()}
-                      className="mt-3 rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {isGeneratingPoster ? "Creating Poster..." : "Generate Poster"}
-                    </button>
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                      <select
+                        value={posterTemplate}
+                        onChange={(event) =>
+                          setPosterTemplate(event.target.value as PosterTemplate)
+                        }
+                        disabled={isGeneratingPoster}
+                        aria-label="Poster style"
+                        className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700"
+                      >
+                        <option value="bold">Bold Gradient</option>
+                        <option value="clean">Clean Minimal</option>
+                        <option value="photo">Brand Photo</option>
+                      </select>
+                      <button
+                        type="button"
+                        onClick={handleGeneratePoster}
+                        disabled={isGeneratingPoster || !generatedPrompt.trim()}
+                        className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isGeneratingPoster
+                          ? "Creating Poster..."
+                          : "Create Branded Poster"}
+                      </button>
+                    </div>
                   )}
                 </div>
 
@@ -818,7 +848,8 @@ export default function DashboardPage() {
                           Poster Preview
                         </h3>
                         <p className="mt-2 text-sm text-slate-600">
-                          Ready-to-post promotional image for your campaign.
+                          Your logo, colours and business details are already
+                          applied. Download the 1080 × 1080 PNG when ready.
                         </p>
                       </div>
 

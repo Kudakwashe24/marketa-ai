@@ -13,7 +13,7 @@ export const PLAN_CONFIGS: Record<PlanKey, PlanConfig> = {
   free: {
     name: "Free",
     campaignLimit: 5,
-    posterLimit: 0,
+    posterLimit: 3,
     personalizedDailyIdea: false,
     templatesEnabled: false,
     advancedHistoryEnabled: false,
@@ -21,7 +21,7 @@ export const PLAN_CONFIGS: Record<PlanKey, PlanConfig> = {
   starter: {
     name: "Starter",
     campaignLimit: 30,
-    posterLimit: 10,
+    posterLimit: 20,
     personalizedDailyIdea: false,
     templatesEnabled: true,
     advancedHistoryEnabled: true,
