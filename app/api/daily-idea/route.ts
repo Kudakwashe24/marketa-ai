@@ -27,6 +27,15 @@ function cleanContextValue(value: string) {
   return value.replace(/\s+/g, " ").trim();
 }
 
+function normalizeGeneratedText(value: string) {
+  return cleanContextValue(value)
+    .replace(/\bcape town\b/gi, "Cape Town")
+    .replace(/\bWhatApp\b/gi, "WhatsApp");
+}
+
+const UNSUPPORTED_IDEA_PATTERN =
+  /\b(video|videos|reel|reels|film|filming|record|recording|livestream|live stream|animation|podcast|testimonial|before[- ]and[- ]after)\b/i;
+
 function getFallbackIdea(context: DailyIdeaContext) {
   const dayNumber = Math.floor(Date.now() / 86_400_000);
   const businessName = context.businessName || "your business";
@@ -34,10 +43,10 @@ function getFallbackIdea(context: DailyIdeaContext) {
     context.description || context.businessType
   ).toLowerCase();
   const audience = context.targetAudience
-    ? ` for ${cleanContextValue(context.targetAudience)}`
+    ? ` for ${normalizeGeneratedText(context.targetAudience)}`
     : "";
   const location = context.location
-    ? ` in ${cleanContextValue(context.location)}`
+    ? ` in ${normalizeGeneratedText(context.location)}`
     : "";
   const cta = context.preferredCta
     ? `Finish with “${cleanContextValue(context.preferredCta).replace(
@@ -48,28 +57,33 @@ function getFallbackIdea(context: DailyIdeaContext) {
 
   const ideas = [
     {
-      title: "Show a Real Result",
-      idea: `Share one recent result or before-and-after example from ${businessName}. Explain how your ${offering} helped the customer${location}. ${cta}`,
+      title: "Promote One Service",
+      idea: `Create a social caption and matching static poster for one ${offering} service from ${businessName}${location}. Focus on one clear customer benefit${audience}. ${cta}`,
     },
     {
       title: "Teach One Useful Tip",
-      idea: `Post one quick tip about ${offering}${audience}. Keep it practical, explain how ${businessName} can help, and ${cta.charAt(0).toLowerCase()}${cta.slice(1)}`,
+      idea: `Create a short social caption with one practical tip about ${offering}${audience}. Explain how ${businessName} can help, and ${cta.charAt(0).toLowerCase()}${cta.slice(1)}`,
     },
     {
-      title: "Behind Your Process",
-      idea: `Show a short photo or video of how ${businessName} delivers ${offering}. Highlight one detail that makes your work valuable${audience}. ${cta}`,
+      title: "Highlight a Customer Need",
+      idea: `Create a social caption and WhatsApp promotion about one common need ${businessName} solves with ${offering}${audience}. Keep the benefit clear and do not add unprovided claims. ${cta}`,
     },
     {
       title: "Answer a Customer Question",
-      idea: `Choose one question customers often ask about ${offering} and answer it in a short post. Mention ${businessName}${location} and ${cta.charAt(0).toLowerCase()}${cta.slice(1)}`,
+      idea: `Create a short social caption answering one common question about ${offering}. Mention ${businessName}${location} and ${cta.charAt(0).toLowerCase()}${cta.slice(1)}`,
     },
     {
-      title: "Promote One Clear Offer",
-      idea: `Create a simple limited-time offer around one part of your ${offering}${audience}. State the benefit clearly, add a deadline, and ${cta.charAt(0).toLowerCase()}${cta.slice(1)}`,
+      title: "Create a Clear Service Ad",
+      idea: `Create concise ad copy and a static branded poster for ${businessName}'s ${offering}${audience}. Use only the business details already provided, explain one clear benefit, and ${cta.charAt(0).toLowerCase()}${cta.slice(1)}`,
     },
   ];
 
-  return ideas[dayNumber % ideas.length];
+  const idea = ideas[dayNumber % ideas.length];
+
+  return {
+    title: normalizeGeneratedText(idea.title),
+    idea: normalizeGeneratedText(idea.idea),
+  };
 }
 
 export async function GET(req: Request) {
@@ -124,8 +138,10 @@ Create one practical marketing idea for this specific business:
 Rules:
 - Make the idea clearly relevant to the saved products, services, and customers
 - Mention the business name or a real service when that information is available
-- Give one action the owner can complete today
-- Make it suitable for social media or WhatsApp
+- Only suggest content Marketa AI can directly generate now: a social media caption, WhatsApp promotion, ad copy, marketing tip, or static branded poster
+- Do not suggest videos, reels, filming, recording, live streams, animation, podcasts, or any other unsupported media
+- Do not require a customer result, testimonial, before-and-after example, photo, or other asset that was not provided
+- Make the idea suitable for social media or WhatsApp and immediately usable in Marketa AI
 - Keep it short, useful, and beginner-friendly
 - Never invent prices, products, customer results, or business details
 - Do not say “tailor this to your business”
@@ -155,7 +171,16 @@ Return this exact JSON shape:
       throw new Error("Gemini returned an invalid daily idea.");
     }
 
-    return NextResponse.json(parsed);
+    const normalizedIdea = normalizeGeneratedText(parsed.idea);
+
+    if (UNSUPPORTED_IDEA_PATTERN.test(normalizedIdea)) {
+      throw new Error("Gemini suggested content Marketa cannot generate.");
+    }
+
+    return NextResponse.json({
+      title: normalizeGeneratedText(parsed.title),
+      idea: normalizedIdea,
+    });
   } catch (error) {
     console.warn("Using profile-aware fallback daily idea:", error);
     return NextResponse.json(getFallbackIdea(fallbackContext));
