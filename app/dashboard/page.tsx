@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { FormEvent, useEffect, useState } from "react";
-import { UserButton } from "@clerk/nextjs";
+import { UserButton, useUser } from "@clerk/nextjs";
 import {
   BUSINESS_TYPES,
   OTHER_BUSINESS_TYPE,
@@ -47,6 +47,12 @@ type CampaignHistoryItem = {
 type DailyIdea = {
   title: string;
   idea: string;
+};
+
+type BusinessProfileSummary = {
+  businessName: string;
+  businessType: string;
+  customBusinessType: string;
 };
 
 type ResultCardProps = {
@@ -130,8 +136,11 @@ function ResultCard({
 }
 
 export default function DashboardPage() {
+  const { user } = useUser();
   const [businessType, setBusinessType] = useState("Local Service Business");
   const [customBusinessType, setCustomBusinessType] = useState("");
+  const [businessProfile, setBusinessProfile] =
+    useState<BusinessProfileSummary | null>(null);
   const [prompt, setPrompt] = useState("");
   const [generatedPrompt, setGeneratedPrompt] = useState("");
   const [generatedBusinessType, setGeneratedBusinessType] = useState("");
@@ -166,6 +175,8 @@ export default function DashboardPage() {
 
       const data = await res.json();
       const profile = data.profile;
+
+      setBusinessProfile(profile ?? null);
 
       if (!profile?.businessType) return;
 
@@ -409,6 +420,11 @@ export default function DashboardPage() {
     setResult(null);
     setPosterUrl(null);
     setPosterError("");
+    window.requestAnimationFrame(() => {
+      document
+        .getElementById("campaign-builder")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   };
 
   const handleDeleteHistoryItem = async (id: number) => {
@@ -449,17 +465,24 @@ export default function DashboardPage() {
     usage.posterUsageCount >= usage.posterLimit;
 
   const selectedTemplates = TEMPLATE_MAP[effectiveBusinessType] ?? [];
+  const firstName = user?.firstName || user?.username || "there";
+  const savedBusinessName = businessProfile?.businessName?.trim();
 
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-10">
       <div className="mx-auto max-w-6xl">
-        <div className="mb-10 flex items-start justify-between gap-4">
+        <div className="mb-8 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">
-              Marketa AI Dashboard
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-indigo-600">
+              Marketa AI
+            </p>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
+              Welcome, {firstName}
             </h1>
-            <p className="mt-2 text-slate-600">
-              Generate ready-to-use marketing campaigns for your business.
+            <p className="mt-2 text-base text-slate-600 md:text-lg">
+              {savedBusinessName
+                ? `What are we promoting for ${savedBusinessName} today?`
+                : "What are we promoting today?"}
             </p>
           </div>
 
@@ -475,53 +498,67 @@ export default function DashboardPage() {
         </div>
 
         {usage && (
-          <div className="mb-8 grid gap-4 md:grid-cols-3">
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-sm text-slate-500">Current Plan</p>
-              <h3 className="mt-2 text-xl font-bold text-slate-900">
-                {usage.planName}
-              </h3>
+          <details className="group mb-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 marker:hidden">
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
+                <p className="font-semibold text-slate-900">
+                  {usage.planName} plan
+                </p>
+                <p className="text-sm text-slate-500">
+                  {usage.campaignUsageCount}/
+                  {usage.campaignLimit === -1
+                    ? "Unlimited"
+                    : usage.campaignLimit}{" "}
+                  campaigns · {usage.posterUsageCount}/
+                  {usage.posterLimit === -1 ? "Unlimited" : usage.posterLimit}{" "}
+                  posters
+                </p>
+              </div>
+              <span className="shrink-0 text-sm font-medium text-indigo-600 group-open:hidden">
+                View plan &amp; usage
+              </span>
+              <span className="hidden shrink-0 text-sm font-medium text-indigo-600 group-open:inline">
+                Hide details
+              </span>
+            </summary>
 
-              <p className="mt-3 text-sm text-slate-600">
-                Upgrade to unlock more campaigns and premium features.
-              </p>
-
-              <Link
-                href="/pricing"
-                className="mt-4 inline-block rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
-              >
-                Upgrade Plan
-              </Link>
+            <div className="grid gap-4 border-t border-slate-100 bg-slate-50/70 p-5 sm:grid-cols-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Current plan
+                </p>
+                <p className="mt-1 text-lg font-bold text-slate-900">
+                  {usage.planName}
+                </p>
+                <Link
+                  href="/pricing"
+                  className="mt-2 inline-flex text-sm font-semibold text-indigo-600 hover:text-indigo-500"
+                >
+                  View plans
+                </Link>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Campaigns this month
+                </p>
+                <p className="mt-1 text-lg font-bold text-slate-900">
+                  {usage.campaignUsageCount} /{" "}
+                  {usage.campaignLimit === -1
+                    ? "Unlimited"
+                    : usage.campaignLimit}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Posters this month
+                </p>
+                <p className="mt-1 text-lg font-bold text-slate-900">
+                  {usage.posterUsageCount} /{" "}
+                  {usage.posterLimit === -1 ? "Unlimited" : usage.posterLimit}
+                </p>
+              </div>
             </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-sm text-slate-500">Campaign Usage</p>
-
-              <h3 className="mt-2 text-xl font-bold text-slate-900">
-                {usage.campaignLimit === -1
-                  ? `${usage.campaignUsageCount} / Unlimited`
-                  : `${usage.campaignUsageCount} / ${usage.campaignLimit}`}
-              </h3>
-
-              <p className="mt-2 text-sm text-slate-600">
-                Campaigns generated this month.
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-sm text-slate-500">Poster Usage</p>
-
-              <h3 className="mt-2 text-xl font-bold text-slate-900">
-                {usage.posterLimit === -1
-                  ? `${usage.posterUsageCount} / Unlimited`
-                  : `${usage.posterUsageCount} / ${usage.posterLimit}`}
-              </h3>
-
-              <p className="mt-2 text-sm text-slate-600">
-                Posters generated this month.
-              </p>
-            </div>
-          </div>
+          </details>
         )}
 
         {campaignLimitReached && (
@@ -537,7 +574,7 @@ export default function DashboardPage() {
             <div className="mt-4">
               <Link
                 href="/pricing"
-                className="inline-block rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white hover:bg-slate-700"
+                className="inline-block rounded-xl bg-indigo-600 px-5 py-3 text-sm font-medium text-white hover:bg-indigo-500"
               >
                 View Pricing
               </Link>
@@ -558,18 +595,18 @@ export default function DashboardPage() {
 
             <Link
               href="/pricing"
-              className="mt-4 inline-block rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white hover:bg-slate-700"
+              className="mt-4 inline-block rounded-xl bg-indigo-600 px-5 py-3 text-sm font-medium text-white hover:bg-indigo-500"
             >
               View Plans
             </Link>
           </div>
         )}
 
-        <div className="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mb-8 rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-violet-50 p-6 shadow-sm">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
               <p className="text-sm font-medium text-slate-500">
-                Daily Marketing Idea
+                Idea for {savedBusinessName || effectiveBusinessType}
               </p>
 
               {isLoadingDailyIdea ? (
@@ -607,7 +644,7 @@ export default function DashboardPage() {
                 type="button"
                 onClick={handleUseDailyIdea}
                 disabled={!dailyIdea || campaignLimitReached}
-                className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-medium text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Use This Idea
               </button>
@@ -615,58 +652,78 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-[1.4fr_0.9fr]">
+        <div className="space-y-8">
           <div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div
+              id="campaign-builder"
+              className="scroll-mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8"
+            >
               <h2 className="text-xl font-semibold text-slate-900">
                 What do you want to promote?
               </h2>
               <p className="mt-2 text-sm text-slate-600">
-                Example: Promote my restaurant weekend burger special.
+                Describe the offer, service, product, or announcement you want
+                customers to see.
               </p>
 
               <form onSubmit={handleGenerateCampaign} className="mt-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700">
-                    Business Type
-                  </label>
-
-                  <select
-                    value={businessType}
-                    onChange={(e) => setBusinessType(e.target.value)}
-                    disabled={campaignLimitReached || isGenerating}
-                    className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 outline-none focus:border-slate-900 disabled:cursor-not-allowed disabled:bg-slate-100"
-                  >
-                    {BUSINESS_TYPES.map((type) => (
-                      <option key={type} value={type}>
-                        {type}
-                      </option>
-                    ))}
-                  </select>
-
-                  {businessType === OTHER_BUSINESS_TYPE && (
-                    <div className="mt-3">
-                      <label className="block text-sm font-medium text-slate-700">
-                        Tell Marketa your business type
-                      </label>
-                      <input
-                        type="text"
-                        value={customBusinessType}
-                        onChange={(e) => setCustomBusinessType(e.target.value)}
-                        placeholder="Example: Car wash, bakery, photographer..."
-                        maxLength={80}
-                        disabled={campaignLimitReached || isGenerating}
-                        className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 placeholder-slate-400 outline-none focus:border-slate-900 disabled:cursor-not-allowed disabled:bg-slate-100"
-                      />
-                      <p className="mt-2 text-xs text-slate-500">
-                        Marketa will tailor the campaign even when your business
-                        is not in the list.
+                {businessProfile?.businessType ? (
+                  <div className="flex flex-col gap-3 rounded-xl border border-indigo-100 bg-indigo-50/70 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
+                        Creating for
+                      </p>
+                      <p className="mt-1 font-semibold text-slate-900">
+                        {savedBusinessName || "Your business"} ·{" "}
+                        {effectiveBusinessType}
                       </p>
                     </div>
-                  )}
-                </div>
+                    <Link
+                      href="/dashboard/business-profile"
+                      className="text-sm font-semibold text-indigo-600 hover:text-indigo-500"
+                    >
+                      Edit business profile
+                    </Link>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700">
+                      Business Type
+                    </label>
 
-                {usage?.templatesEnabled ? (
+                    <select
+                      value={businessType}
+                      onChange={(e) => setBusinessType(e.target.value)}
+                      disabled={campaignLimitReached || isGenerating}
+                      className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 outline-none focus:border-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-100"
+                    >
+                      {BUSINESS_TYPES.map((type) => (
+                        <option key={type} value={type}>
+                          {type}
+                        </option>
+                      ))}
+                    </select>
+
+                    {businessType === OTHER_BUSINESS_TYPE && (
+                      <div className="mt-3">
+                        <label className="block text-sm font-medium text-slate-700">
+                          Tell Marketa your business type
+                        </label>
+                        <input
+                          type="text"
+                          value={customBusinessType}
+                          onChange={(e) => setCustomBusinessType(e.target.value)}
+                          placeholder="Example: Car wash, bakery, photographer..."
+                          maxLength={80}
+                          disabled={campaignLimitReached || isGenerating}
+                          className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 placeholder-slate-400 outline-none focus:border-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-100"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {usage?.templatesEnabled && selectedTemplates.length > 0 ? (
                   <div>
                     <label className="block text-sm font-medium text-slate-700">
                       Quick Templates
@@ -684,7 +741,7 @@ export default function DashboardPage() {
                       ))}
                     </div>
                   </div>
-                ) : (
+                ) : !usage?.templatesEnabled ? (
                   <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
                     <p className="text-sm text-slate-600">
                       Quick templates are available on Starter, Growth, and Pro
@@ -697,7 +754,7 @@ export default function DashboardPage() {
                       Upgrade to unlock templates
                     </Link>
                   </div>
-                )}
+                ) : null}
 
                 <textarea
                   value={prompt}
@@ -714,7 +771,7 @@ export default function DashboardPage() {
                 <button
                   type="submit"
                   disabled={isGenerating || campaignLimitReached}
-                  className="rounded-xl bg-slate-900 px-6 py-3 font-medium text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-xl bg-indigo-600 px-6 py-3 font-medium text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isGenerating
                     ? "Generating..."
@@ -730,20 +787,14 @@ export default function DashboardPage() {
             </div>
 
             {!result && !isGenerating && !campaignLimitReached && (
-              <div className="mt-8 rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm">
-                <h3 className="text-lg font-semibold text-slate-900">
-                  Your campaign results will appear here
-                </h3>
-                <p className="mt-2 text-sm text-slate-600">
-                  Type what you want to promote, generate your campaign, and
-                  copy the content into Instagram, Facebook, or WhatsApp.
-                </p>
-              </div>
+              <p className="mt-5 text-center text-sm text-slate-500">
+                Your generated campaign will appear below.
+              </p>
             )}
 
             {isGenerating && (
-              <div className="mt-8 rounded-xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-                <p className="text-slate-600">
+              <div className="mt-6 rounded-xl border border-indigo-100 bg-indigo-50 p-5 text-center">
+                <p className="text-indigo-700">
                   Marketa AI is generating your campaign...
                 </p>
               </div>
@@ -790,7 +841,7 @@ export default function DashboardPage() {
                         type="button"
                         onClick={handleGeneratePoster}
                         disabled={isGeneratingPoster || !generatedPrompt.trim()}
-                        className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-medium text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {isGeneratingPoster
                           ? "Creating Poster..."
@@ -857,7 +908,7 @@ export default function DashboardPage() {
                         <a
                           href={posterUrl}
                           download="marketa-poster.png"
-                          className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white hover:bg-slate-700"
+                          className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-medium text-white hover:bg-indigo-500"
                         >
                           Download Poster
                         </a>
@@ -878,7 +929,7 @@ export default function DashboardPage() {
                       width={1024}
                       height={1024}
                       unoptimized
-                      className="mx-auto w-full max-w-md rounded-2xl border border-slate-200"
+                      className="mx-auto w-full max-w-2xl rounded-2xl border border-slate-200"
                     />
                   </div>
                 )}
@@ -902,12 +953,30 @@ export default function DashboardPage() {
             )}
           </div>
 
-          <aside>
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="text-xl font-semibold text-slate-900">
-                Recent Campaigns
-              </h2>
-              <p className="mt-2 text-sm text-slate-600">
+          <details className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 marker:hidden">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">
+                  Your past campaigns
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  {isLoadingHistory
+                    ? "Loading your saved work..."
+                    : `${history.length} saved campaign${
+                        history.length === 1 ? "" : "s"
+                      }`}
+                </p>
+              </div>
+              <span className="text-sm font-semibold text-indigo-600 group-open:hidden">
+                View history
+              </span>
+              <span className="hidden text-sm font-semibold text-indigo-600 group-open:inline">
+                Hide history
+              </span>
+            </summary>
+
+            <div className="border-t border-slate-100 bg-slate-50/50 p-6">
+              <p className="text-sm text-slate-600">
                 Search, reuse, or delete your saved campaigns.
               </p>
 
@@ -925,7 +994,7 @@ export default function DashboardPage() {
                   />
                   <button
                     type="submit"
-                    className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-medium text-white hover:bg-slate-700"
+                    className="rounded-xl bg-indigo-600 px-4 py-3 text-sm font-medium text-white hover:bg-indigo-500"
                   >
                     Search
                   </button>
@@ -945,7 +1014,7 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              <div className="mt-6 space-y-4">
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
                 {isLoadingHistory ? (
                   <p className="text-sm text-slate-500">Loading history...</p>
                 ) : history.length === 0 ? (
@@ -1019,7 +1088,7 @@ export default function DashboardPage() {
                 )}
               </div>
             </div>
-          </aside>
+          </details>
         </div>
       </div>
     </main>
