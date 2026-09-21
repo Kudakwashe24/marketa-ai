@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import { UserButton, useUser } from "@clerk/nextjs";
+import BrandLogo from "@/components/BrandLogo";
 import {
   BUSINESS_TYPES,
   OTHER_BUSINESS_TYPE,
@@ -549,9 +550,7 @@ export default function DashboardPage() {
       <div className="relative flex min-h-screen">
         <aside className="sticky top-0 hidden h-screen w-[19rem] shrink-0 flex-col border-r border-white/10 bg-black/20 px-4 py-5 backdrop-blur-xl lg:flex">
           <Link href="/" className="flex items-center gap-3 px-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-cyan-400 font-bold text-white shadow-lg shadow-violet-950/40">
-              M
-            </span>
+            <BrandLogo size="medium" />
             <div>
               <p className="font-semibold tracking-tight text-white">Marketa AI</p>
               <p className="text-xs text-slate-500">Marketing intelligence</p>
@@ -680,9 +679,7 @@ export default function DashboardPage() {
             <header className="flex items-center justify-between border-b border-white/10 py-4 lg:py-5">
               <div className="lg:hidden">
                 <Link href="/" className="flex items-center gap-2 font-semibold">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-cyan-400 text-sm">
-                    M
-                  </span>
+                  <BrandLogo />
                   Marketa AI
                 </Link>
               </div>

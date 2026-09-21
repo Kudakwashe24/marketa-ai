@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { Show, UserButton } from "@clerk/nextjs";
+import BrandLogo from "@/components/BrandLogo";
 
 export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-[#07080d]/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
         <Link href="/" className="flex shrink-0 items-center gap-2 text-base font-semibold text-white sm:text-lg">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-cyan-400 text-sm shadow-lg shadow-violet-950/40">M</span>
+          <BrandLogo />
           Marketa AI
         </Link>
 
