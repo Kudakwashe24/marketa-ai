@@ -417,7 +417,14 @@ function drawBoldTemplate(
     1.38
   );
   ctx.globalAlpha = 1;
-  drawCta(ctx, data.cta, 72, Math.min(supportY + 36, 855), "#ffffff", secondary);
+  drawCta(
+    ctx,
+    data.cta,
+    72,
+    Math.min(supportY + 36, 855),
+    "#ffffff",
+    getReadableColor(secondary, "#ffffff")
+  );
   drawFooter(ctx, data, "#ffffff");
 }
 
