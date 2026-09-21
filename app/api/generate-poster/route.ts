@@ -21,20 +21,48 @@ function cleanText(value: unknown, maxLength: number) {
     .slice(0, maxLength);
 }
 
+function cleanHeadlineCandidate(value: string) {
+  const firstSentence = cleanText(value, 140)
+    .split(/(?<=[.!?])\s+/)[0]
+    .replace(/^[^\p{L}\p{N}%]+/gu, "")
+    .replace(/^promote\s+(?:(?:my|our|a|an|the)\s+)?/i, "")
+    .replace(/^(?:hi|hello|hey)[!,.:\s-]+/i, "")
+    .replace(/[.!?]+$/, "")
+    .trim();
+
+  if (!firstSentence) return "";
+  return `${firstSentence.charAt(0).toUpperCase()}${firstSentence.slice(1)}`;
+}
+
 function getHeadline(adCopy: string, prompt: string) {
   const adHeadline = adCopy
     .split(/\n+/)
-    .map((line) => cleanText(line, 90))
-    .find((line) => line.length >= 4 && line.length <= 90);
+    .map(cleanHeadlineCandidate)
+    .find((line) => line.length >= 4 && line.length <= 110);
 
-  const fallback = cleanText(prompt, 90).replace(/^promote\s+/i, "");
+  const fallback = cleanHeadlineCandidate(prompt).slice(0, 110);
   return adHeadline || fallback || "A special offer for you";
 }
 
-function getSupportingText(socialCaption: string, whatsappPromo: string) {
-  const source = whatsappPromo || socialCaption;
+function getSupportingText(
+  socialCaption: string,
+  whatsappPromo: string,
+  headline: string
+) {
+  const source = socialCaption || whatsappPromo;
+  const withoutGreeting = source.replace(
+    /^(?:hi|hello|hey)(?:\s+there)?[!,.:\s-]+/i,
+    ""
+  );
+  const withoutHeadline = withoutGreeting
+    .replace(headline, "")
+    .replace(/^[!,.:\s-]+/, "");
+
   return (
-    cleanText(source.replace(/(?:^|\s)#[\p{L}\p{N}_-]+/gu, ""), 190) ||
+    cleanText(
+      withoutHeadline.replace(/(?:^|\s)#[\p{L}\p{N}_-]+/gu, ""),
+      190
+    ) ||
     "Discover our latest offer and get in touch today."
   );
 }
@@ -98,6 +126,7 @@ export async function POST(req: Request) {
       : "bold";
     const profile = await getBusinessProfile(userId);
     const fallbackBusinessType = cleanText(body.businessType, 120);
+    const headline = getHeadline(adCopy, prompt);
 
     const poster = {
       template,
@@ -108,8 +137,12 @@ export async function POST(req: Request) {
         profile?.businessType ||
         fallbackBusinessType ||
         "Local Business",
-      headline: getHeadline(adCopy, prompt),
-      supportingText: getSupportingText(socialCaption, whatsappPromo),
+      headline,
+      supportingText: getSupportingText(
+        socialCaption,
+        whatsappPromo,
+        headline
+      ),
       cta: profile?.preferredCta || "Contact us today",
       phone: profile?.phone || "",
       instagram: profile?.instagram || "",
