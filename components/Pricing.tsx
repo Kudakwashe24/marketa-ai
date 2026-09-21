@@ -108,12 +108,13 @@ export default function Pricing() {
           {plans.map((plan) => (
             <div
               key={plan.name}
-              className={`relative flex h-full flex-col rounded-3xl border p-8 shadow-sm ${
+              className={`ai-card-lift group relative flex h-full flex-col rounded-3xl border p-8 shadow-sm ${
                 plan.featured
                   ? "border-violet-400/40 bg-gradient-to-b from-violet-600/20 to-[#10121a] text-white shadow-2xl shadow-violet-950/30"
                   : "border-white/10 bg-white/[0.035] text-white"
               }`}
             >
+              <span className="pointer-events-none absolute right-5 top-5 h-2 w-2 rounded-full bg-violet-300/30 opacity-0 shadow-[0_0_20px_rgba(196,181,253,0.9)] transition group-hover:opacity-100" />
               {plan.badge && (
                 <div className="absolute -top-3 left-6 rounded-full bg-amber-400 px-3 py-1 text-xs font-bold text-slate-900">
                   {plan.badge}
@@ -203,7 +204,7 @@ export default function Pricing() {
 
               <Link
                 href="/signup"
-                className={`mt-8 inline-block w-full rounded-xl px-6 py-3 text-center font-medium ${
+                className={`mt-8 inline-block w-full rounded-xl px-6 py-3 text-center font-medium transition duration-300 group-hover:scale-[1.02] ${
                   plan.featured
                     ? "bg-white text-slate-950 hover:bg-violet-100"
                     : "border border-white/10 bg-white/5 text-white hover:border-violet-400/30 hover:bg-violet-500/10"

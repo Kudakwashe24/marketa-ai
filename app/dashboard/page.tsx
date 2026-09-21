@@ -812,7 +812,9 @@ export default function DashboardPage() {
 
               {result && (
                 <section className="mx-auto max-w-5xl space-y-7">
-                  <div className="ml-auto max-w-2xl rounded-3xl rounded-br-md bg-gradient-to-br from-violet-600 to-indigo-600 px-5 py-4 shadow-lg shadow-violet-950/30">
+                  <div className="grid grid-cols-[2.25rem_minmax(0,1fr)] gap-3">
+                    <div aria-hidden="true" />
+                    <div className="ml-auto w-full max-w-2xl rounded-3xl rounded-br-md bg-gradient-to-br from-violet-600 to-indigo-600 px-5 py-4 shadow-lg shadow-violet-950/30">
                     <p className="whitespace-pre-line text-sm leading-6 text-white">
                       {generatedPrompt}
                     </p>
@@ -828,6 +830,7 @@ export default function DashboardPage() {
                         />
                       </div>
                     )}
+                    </div>
                   </div>
 
                   <div className="flex gap-3">
@@ -1094,7 +1097,8 @@ export default function DashboardPage() {
                         }
                         title="Attach a product, service, or brand image"
                         aria-label="Attach a product, service, or brand image"
-                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-xl text-slate-400 transition hover:border-violet-400/40 hover:text-white disabled:opacity-50"
+                        data-tooltip="Attach an image"
+                        className="ai-tooltip relative flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-xl text-slate-400 transition hover:scale-105 hover:border-violet-400/40 hover:text-white disabled:opacity-50"
                       >
                         {isUploadingAttachment ? "…" : "+"}
                       </button>

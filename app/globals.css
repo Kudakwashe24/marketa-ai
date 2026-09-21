@@ -46,6 +46,47 @@ select {
   animation: ai-float 7s ease-in-out infinite;
 }
 
+.ai-card-lift {
+  transition:
+    transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 280ms ease,
+    box-shadow 280ms ease;
+}
+
+.ai-card-lift:hover {
+  transform: translate3d(0, -8px, 0) scale(1.018);
+  border-color: rgba(167, 139, 250, 0.38);
+  box-shadow: 0 24px 70px rgba(76, 29, 149, 0.22);
+}
+
+.ai-tooltip::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 0.55rem);
+  width: max-content;
+  max-width: 12rem;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.55rem;
+  background: rgba(17, 19, 27, 0.96);
+  color: #ddd6fe;
+  font-size: 0.7rem;
+  line-height: 1rem;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(0.3rem);
+  transition: opacity 180ms ease, transform 180ms ease;
+  white-space: nowrap;
+}
+
+.ai-tooltip:hover::after,
+.ai-tooltip:focus-visible::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 @keyframes ai-pulse {
   0%,
   100% {

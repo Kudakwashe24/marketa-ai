@@ -26,6 +26,124 @@ function normalizeMarketingCopy(value: string) {
     .trim();
 }
 
+function cleanSentence(value: string) {
+  return normalizeMarketingCopy(value)
+    .replace(/\s+/g, " ")
+    .replace(/\s+([,.!?])/g, "$1")
+    .trim();
+}
+
+function finishSentence(value: string) {
+  const cleaned = cleanSentence(value).replace(/[.!?]+$/, "");
+  return cleaned ? `${cleaned}.` : "";
+}
+
+function capitalizeSentence(value: string) {
+  const sentence = finishSentence(value);
+  return sentence ? sentence.charAt(0).toUpperCase() + sentence.slice(1) : "";
+}
+
+function formatServices(value: string, fallback: string) {
+  const items = value
+    .split(/\n|,|\||\//)
+    .map((item) => cleanSentence(item))
+    .filter(Boolean)
+    .slice(0, 3);
+
+  if (items.length === 0) return cleanSentence(fallback);
+  if (items.length === 1) return items[0];
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+
+  return `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}`;
+}
+
+function getPromotionFocus(prompt: string, services: string) {
+  const cleaned = cleanSentence(prompt)
+    .replace(/^(please\s+)?(promote|advertise|announce|market)\s+/i, "")
+    .replace(/^(please\s+)?(help me\s+)?(create|write|generate)\s+/i, "");
+  const looksLikeInstruction =
+    /\b(social (media )?caption|whatsapp (promotion|promo|message)|ad copy|marketing (campaign|content)|static poster)\b/i.test(
+      cleaned
+    );
+
+  return looksLikeInstruction || cleaned.length < 8 ? services : cleaned;
+}
+
+function getCampaignHashtags(businessType: string, services: string, location: string) {
+  const source = `${businessType} ${services}`;
+  const tags: string[] = [];
+
+  if (/web development/i.test(source)) tags.push("#WebDevelopment");
+  if (/\bseo\b/i.test(source)) tags.push("#SEO");
+  if (/salon|barber|hair|braid/i.test(source)) tags.push("#HairCare");
+  if (/restaurant|food|catering/i.test(source)) tags.push("#FoodLovers");
+  if (/car wash|detailing/i.test(source)) tags.push("#CarCare");
+  if (/clothing|boutique|fashion/i.test(source)) tags.push("#ShopLocal");
+  if (location) tags.push(`#${location.replace(/[^a-z0-9]/gi, "")}`);
+  if (tags.length === 0) tags.push("#SmallBusiness", "#SupportLocal");
+
+  return [...new Set(tags)].slice(0, 3).join(" ");
+}
+
+function getBenefitAngle(source: string) {
+  if (/web development|website|\bseo\b/i.test(source)) {
+    return {
+      hook: "Is your business easy to find—and easy to trust—online?",
+      benefit:
+        "Build a clearer online presence that helps the right customers discover your business and take the next step.",
+      headline: "Be easier to find. Easier to choose.",
+    };
+  }
+  if (/salon|barber|hair|braid/i.test(source)) {
+    return {
+      hook: "Ready to step into your next look with confidence?",
+      benefit:
+        "Make time for the style and care that helps you look polished and feel your best.",
+      headline: "Your next look starts here.",
+    };
+  }
+  if (/restaurant|food|catering|meal/i.test(source)) {
+    return {
+      hook: "Good food can turn an ordinary day into something worth sharing.",
+      benefit:
+        "Enjoy a satisfying option made for customers who want flavour, convenience, and a reason to come back.",
+      headline: "Make your next meal count.",
+    };
+  }
+  if (/car wash|detailing|vehicle/i.test(source)) {
+    return {
+      hook: "Your car deserves to look as good as it feels to drive.",
+      benefit:
+        "Give your vehicle the clean, cared-for finish that makes every trip feel better.",
+      headline: "Drive clean. Arrive confident.",
+    };
+  }
+  if (/clothing|boutique|fashion|outfit/i.test(source)) {
+    return {
+      hook: "The right look does more than fit—it changes how you show up.",
+      benefit:
+        "Find a style that feels current, confident, and true to you.",
+      headline: "Find your next favourite look.",
+    };
+  }
+
+  return {
+    hook: "Looking for a clear, reliable way to move forward?",
+    benefit:
+      "Get practical support focused on the result you need, without unnecessary complications.",
+    headline: "A simpler way to get it done.",
+  };
+}
+
+function resultEchoesPrompt(result: CampaignResult, prompt: string) {
+  const normalizedPrompt = cleanSentence(prompt).toLowerCase();
+  if (normalizedPrompt.length < 32) return false;
+
+  return [result.socialCaption, result.whatsappPromo, result.adCopy].some(
+    (value) => cleanSentence(value).toLowerCase().includes(normalizedPrompt)
+  );
+}
+
 const ALLOWED_IMAGE_TYPES = new Set([
   "image/png",
   "image/jpeg",
@@ -108,6 +226,9 @@ function createFallbackCampaign({
   businessName,
   businessType,
   prompt,
+  description,
+  targetAudience,
+  location,
   preferredCta,
   phone,
   website,
@@ -116,22 +237,35 @@ function createFallbackCampaign({
   businessName: string;
   businessType: string;
   prompt: string;
+  description: string;
+  targetAudience: string;
+  location: string;
   preferredCta: string;
   phone: string;
   website: string;
   instagram: string;
 }): CampaignResult {
   const name = businessName || businessType;
-  const cta = normalizeMarketingCopy(preferredCta || "Contact us today");
+  const cta = cleanSentence(preferredCta || "Message us to get started");
   const contact = phone || website || instagram;
-  const contactText = contact ? ` ${contact}` : "";
+  const contactText = contact ? ` ${cleanSentence(contact)}` : "";
+  const services = formatServices(description, businessType);
+  const focus = getPromotionFocus(prompt, services);
+  const audience = targetAudience
+    ? cleanSentence(targetAudience)
+    : "people who value reliable service";
+  const localContext = location ? ` in ${cleanSentence(location)}` : "";
+  const hashtags = getCampaignHashtags(businessType, services, location);
+  const ctaLine = `${finishSentence(cta)}${contactText}`.trim();
+  const angle = getBenefitAngle(`${businessType} ${services} ${focus}`);
+  const focusLine =
+    focus === services ? angle.benefit : capitalizeSentence(focus);
 
   return {
-    socialCaption: `✨ ${prompt}\n\n${name} is ready to help. ${cta}.${contactText}\n\n#SmallBusiness #SupportLocal`,
-    whatsappPromo: `Hi 👋 ${name} has an offer for you: ${prompt} ${cta}.${contactText}`,
-    adCopy: `🚀 ${prompt}\n\nChoose ${name} for your ${businessType.toLowerCase()} needs. ${cta}.`,
-    marketingTip:
-      "💡 Share this campaign on your social feed and WhatsApp Status, then follow up with anyone who replies or asks for more information.",
+    socialCaption: `✨ ${angle.hook}\n\n${focusLine} ${name} provides ${services.toLowerCase()}${localContext} for ${audience}.\n\n${ctaLine}\n\n${hashtags}`,
+    whatsappPromo: `Hi 👋 ${angle.hook}\n\n${focusLine} ${name} offers ${services.toLowerCase()}${localContext}.\n\n${ctaLine}`,
+    adCopy: `🚀 ${angle.headline}\n\n${focusLine}\n\n${name} · ${finishSentence(services)}\n${ctaLine}`,
+    marketingTip: `💡 Lead with the customer need this campaign solves, then keep one clear action: ${cta.toLowerCase()}. Share the social caption on your feed and the shorter version on WhatsApp Status.`,
   };
 }
 
@@ -246,7 +380,14 @@ Return valid JSON with these exact fields:
 }
 
 Rules:
-- Keep the tone professional, simple, and practical
+- Write finished, publication-ready marketing copy—not instructions, notes, or a summary of the request
+- Never repeat or closely paraphrase the user's full prompt
+- Lead with a customer-facing hook or benefit instead of saying the business “has an offer for you”
+- Social caption: 45–90 words, natural line breaks, a clear benefit, one CTA, and 2–4 relevant hashtags
+- WhatsApp promotion: 30–65 words, conversational, direct, and ready to send
+- Ad copy: a short headline, 1–3 concise supporting lines, and a CTA
+- Marketing tip: one specific, actionable recommendation tied to this campaign; avoid generic advice
+- Keep the tone professional, simple, persuasive, and practical
 - Make the content relevant to the business type
 - Make the output useful for small businesses
 - Use 1 to 3 relevant emojis naturally in the social caption and up to 2 in the WhatsApp promotion
@@ -284,12 +425,18 @@ Rules:
       });
 
       parsed = parseCampaignResult(response.text ?? "");
+      if (resultEchoesPrompt(parsed, prompt)) {
+        throw new Error("Gemini repeated the campaign request instead of writing copy.");
+      }
     } catch (generationError) {
       console.warn("Using fallback campaign:", generationError);
       parsed = createFallbackCampaign({
         businessName: businessProfile?.businessName || "",
         businessType,
         prompt: prompt.trim(),
+        description: businessProfile?.description || "",
+        targetAudience: businessProfile?.targetAudience || "",
+        location: businessProfile?.location || "",
         preferredCta: businessProfile?.preferredCta || "",
         phone: businessProfile?.phone || "",
         website: businessProfile?.website || "",

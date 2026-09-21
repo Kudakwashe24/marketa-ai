@@ -6,12 +6,10 @@ import ExampleOutput from "@/components/ExampleOutput";
 import Pricing from "@/components/Pricing";
 import CTA from "@/components/CTA";
 import Footer from "@/components/Footer";
-import AmbientPointer from "@/components/AmbientPointer";
 
 export default function HomePage() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#07080d] text-white">
-      <AmbientPointer />
       <div className="pointer-events-none fixed inset-0 ai-grid opacity-40" />
       <Navbar />
       <div className="relative">

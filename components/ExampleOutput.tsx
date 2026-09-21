@@ -18,13 +18,17 @@ export default function ExampleOutput() {
         </div>
 
         <div className="rounded-3xl border border-white/10 bg-[#10121a] p-8 shadow-2xl shadow-black/30">
-          <div className="mb-8 ml-auto max-w-2xl rounded-2xl rounded-br-md bg-violet-600 p-4">
-            <p className="text-xs font-medium uppercase tracking-wider text-violet-200">Your prompt</p>
-            <p className="mt-2 text-white">
-              Business Type: Salon / Barber
-              <br />
-              Promotion: Promote my weekend braids special.
-            </p>
+          <div className="mb-8 grid md:grid-cols-2 md:gap-6">
+            <div className="rounded-2xl rounded-br-md bg-gradient-to-br from-violet-600 to-indigo-600 p-4 shadow-lg shadow-violet-950/30 md:col-start-2">
+              <p className="text-xs font-medium uppercase tracking-wider text-violet-200">
+                Your prompt
+              </p>
+              <p className="mt-2 text-white">
+                Business Type: Salon / Barber
+                <br />
+                Promotion: Promote my weekend braids special.
+              </p>
+            </div>
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
