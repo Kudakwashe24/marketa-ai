@@ -19,18 +19,55 @@ export type TemplatePosterData = {
 };
 
 const SIZE = 1080;
+const FONT_FAMILY = "Arial, sans-serif";
 
 function normalizeHex(value: string, fallback: string) {
   return /^#[0-9a-f]{6}$/i.test(value) ? value : fallback;
 }
 
-function getContrastColor(hex: string) {
+function getRgb(hex: string) {
   const normalized = normalizeHex(hex, "#0f172a").slice(1);
   const red = Number.parseInt(normalized.slice(0, 2), 16);
   const green = Number.parseInt(normalized.slice(2, 4), 16);
   const blue = Number.parseInt(normalized.slice(4, 6), 16);
-  const luminance = (red * 299 + green * 587 + blue * 114) / 1000;
-  return luminance > 155 ? "#0f172a" : "#ffffff";
+  return { red, green, blue };
+}
+
+function getRelativeLuminance(hex: string) {
+  const { red, green, blue } = getRgb(hex);
+  const channels = [red, green, blue].map((channel) => {
+    const normalized = channel / 255;
+    return normalized <= 0.03928
+      ? normalized / 12.92
+      : ((normalized + 0.055) / 1.055) ** 2.4;
+  });
+  return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+}
+
+function getContrastRatio(first: string, second: string) {
+  const firstLuminance = getRelativeLuminance(first);
+  const secondLuminance = getRelativeLuminance(second);
+  const lighter = Math.max(firstLuminance, secondLuminance);
+  const darker = Math.min(firstLuminance, secondLuminance);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function getContrastColor(background: string) {
+  return getContrastRatio(background, "#ffffff") >=
+    getContrastRatio(background, "#0f172a")
+    ? "#ffffff"
+    : "#0f172a";
+}
+
+function getReadableColor(
+  preferred: string,
+  background: string,
+  fallback = "#0f172a"
+) {
+  const normalizedPreferred = normalizeHex(preferred, fallback);
+  return getContrastRatio(normalizedPreferred, background) >= 4.5
+    ? normalizedPreferred
+    : fallback;
 }
 
 function hexToRgba(hex: string, alpha: number) {
@@ -53,14 +90,10 @@ function roundedRect(
   ctx.roundRect(x, y, width, height, radius);
 }
 
-function drawWrappedText(
+function getWrappedLines(
   ctx: CanvasRenderingContext2D,
   text: string,
-  x: number,
-  y: number,
-  maxWidth: number,
-  lineHeight: number,
-  maxLines: number
+  maxWidth: number
 ) {
   const words = text.split(/\s+/).filter(Boolean);
   const lines: string[] = [];
@@ -77,6 +110,89 @@ function drawWrappedText(
   }
 
   if (currentLine) lines.push(currentLine);
+  return lines;
+}
+
+function fitTextToWidth(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+  maxFontSize: number,
+  minFontSize: number,
+  weight: number
+) {
+  let fontSize = maxFontSize;
+  let visibleText = text.trim();
+
+  while (fontSize > minFontSize) {
+    ctx.font = `${weight} ${fontSize}px ${FONT_FAMILY}`;
+    if (ctx.measureText(visibleText).width <= maxWidth) break;
+    fontSize -= 2;
+  }
+
+  ctx.font = `${weight} ${fontSize}px ${FONT_FAMILY}`;
+  while (ctx.measureText(visibleText).width > maxWidth && visibleText) {
+    visibleText = visibleText.slice(0, -1).trimEnd();
+  }
+
+  if (visibleText !== text.trim()) {
+    while (ctx.measureText(`${visibleText}…`).width > maxWidth && visibleText) {
+      visibleText = visibleText.slice(0, -1).trimEnd();
+    }
+    visibleText = `${visibleText}…`;
+  }
+
+  return {
+    fontSize,
+    text: visibleText,
+    width: ctx.measureText(visibleText).width,
+  };
+}
+
+function drawFittedSingleLineText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  maxFontSize: number,
+  minFontSize: number,
+  weight: number
+) {
+  const fitted = fitTextToWidth(
+    ctx,
+    text,
+    maxWidth,
+    maxFontSize,
+    minFontSize,
+    weight
+  );
+  ctx.fillText(fitted.text, x, y);
+  return fitted.width;
+}
+
+function drawFittedWrappedText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  maxLines: number,
+  maxFontSize: number,
+  minFontSize: number,
+  weight: number,
+  lineHeightRatio = 1.12
+) {
+  let fontSize = maxFontSize;
+  let lines: string[] = [];
+
+  while (fontSize >= minFontSize) {
+    ctx.font = `${weight} ${fontSize}px ${FONT_FAMILY}`;
+    lines = getWrappedLines(ctx, text, maxWidth);
+    if (lines.length <= maxLines || fontSize === minFontSize) break;
+    fontSize = Math.max(fontSize - 2, minFontSize);
+  }
+
   const visibleLines = lines.slice(0, maxLines);
 
   if (lines.length > maxLines) {
@@ -87,6 +203,7 @@ function drawWrappedText(
     visibleLines[maxLines - 1] = `${finalLine}…`;
   }
 
+  const lineHeight = Math.round(fontSize * lineHeightRatio);
   visibleLines.forEach((line, index) => {
     ctx.fillText(line, x, y + index * lineHeight);
   });
@@ -164,20 +281,36 @@ function drawBrandHeader(
 ) {
   if (logo) {
     ctx.fillStyle = badgeBackground;
-    roundedRect(ctx, 68, 62, 330, 120, 24);
+    roundedRect(ctx, 68, 58, 356, 128, 24);
     ctx.fill();
-    drawImageContain(ctx, logo, 92, 78, 282, 88);
+    drawImageContain(ctx, logo, 88, 73, 316, 98);
   } else {
     ctx.fillStyle = foreground;
-    ctx.font = "700 32px Arial, sans-serif";
-    ctx.fillText(data.businessName, 72, 125);
+    drawFittedSingleLineText(
+      ctx,
+      data.businessName,
+      72,
+      125,
+      470,
+      32,
+      22,
+      700
+    );
   }
 
   ctx.textAlign = "right";
   ctx.fillStyle = foreground;
   ctx.globalAlpha = 0.82;
-  ctx.font = "600 24px Arial, sans-serif";
-  ctx.fillText(data.businessType.toUpperCase(), 1008, 122);
+  drawFittedSingleLineText(
+    ctx,
+    data.businessType.toUpperCase(),
+    1008,
+    122,
+    logo ? 520 : 420,
+    24,
+    18,
+    600
+  );
   ctx.globalAlpha = 1;
   ctx.textAlign = "left";
 }
@@ -193,13 +326,21 @@ function drawFooter(
     .join("  •  ");
 
   ctx.fillStyle = foreground;
-  ctx.font = "600 24px Arial, sans-serif";
-  ctx.fillText(contact || data.location || data.businessName, 72, 1000);
+  drawFittedSingleLineText(
+    ctx,
+    contact || data.location || data.businessName,
+    72,
+    1000,
+    data.watermark ? 650 : 936,
+    24,
+    17,
+    600
+  );
 
   if (data.watermark) {
     ctx.textAlign = "right";
     ctx.globalAlpha = 0.65;
-    ctx.font = "500 19px Arial, sans-serif";
+    ctx.font = `500 19px ${FONT_FAMILY}`;
     ctx.fillText("Made with Marketa AI", 1008, 1000);
     ctx.globalAlpha = 1;
     ctx.textAlign = "left";
@@ -214,14 +355,14 @@ function drawCta(
   background: string,
   foreground: string
 ) {
-  const visibleText = text.slice(0, 38);
-  ctx.font = "700 27px Arial, sans-serif";
-  const width = Math.min(ctx.measureText(visibleText).width + 62, 560);
+  const fitted = fitTextToWidth(ctx, text, 480, 27, 20, 700);
+  const width = Math.min(fitted.width + 62, 560);
   ctx.fillStyle = background;
   roundedRect(ctx, x, y, width, 70, 35);
   ctx.fill();
   ctx.fillStyle = foreground;
-  ctx.fillText(visibleText, x + 31, y + 45);
+  ctx.font = `700 ${fitted.fontSize}px ${FONT_FAMILY}`;
+  ctx.fillText(fitted.text, x + 31, y + 45);
 }
 
 function drawBoldTemplate(
@@ -250,18 +391,30 @@ function drawBoldTemplate(
   drawBrandHeader(ctx, data, logo, "#ffffff", "rgba(255,255,255,0.94)");
 
   ctx.fillStyle = "#ffffff";
-  ctx.font = "800 84px Arial, sans-serif";
-  const nextY = drawWrappedText(ctx, data.headline, 72, 350, 900, 94, 3);
+  const nextY = drawFittedWrappedText(
+    ctx,
+    data.headline,
+    72,
+    350,
+    900,
+    3,
+    84,
+    58,
+    800,
+    1.08
+  );
   ctx.globalAlpha = 0.9;
-  ctx.font = "400 31px Arial, sans-serif";
-  const supportY = drawWrappedText(
+  const supportY = drawFittedWrappedText(
     ctx,
     data.supportingText,
     76,
     nextY + 34,
     820,
-    43,
-    3
+    3,
+    31,
+    25,
+    400,
+    1.38
   );
   ctx.globalAlpha = 1;
   drawCta(ctx, data.cta, 72, Math.min(supportY + 36, 855), "#ffffff", secondary);
@@ -275,7 +428,10 @@ function drawCleanTemplate(
 ) {
   const primary = normalizeHex(data.primaryColor, "#4f46e5");
   const secondary = normalizeHex(data.secondaryColor, "#0f172a");
-  ctx.fillStyle = "#f8fafc";
+  const background = "#f8fafc";
+  const headlineColor = getReadableColor(secondary, background);
+  const headerColor = getReadableColor(primary, background, headlineColor);
+  ctx.fillStyle = background;
   ctx.fillRect(0, 0, SIZE, SIZE);
   ctx.fillStyle = primary;
   ctx.fillRect(0, 0, 30, SIZE);
@@ -284,24 +440,36 @@ function drawCleanTemplate(
   ctx.arc(980, 105, 260, 0, Math.PI * 2);
   ctx.fill();
 
-  drawBrandHeader(ctx, data, logo, secondary, "#ffffff");
+  drawBrandHeader(ctx, data, logo, headerColor, "#ffffff");
   ctx.fillStyle = primary;
   roundedRect(ctx, 72, 242, 150, 12, 6);
   ctx.fill();
 
-  ctx.fillStyle = secondary;
-  ctx.font = "800 82px Arial, sans-serif";
-  const nextY = drawWrappedText(ctx, data.headline, 72, 355, 900, 92, 3);
+  ctx.fillStyle = headlineColor;
+  const nextY = drawFittedWrappedText(
+    ctx,
+    data.headline,
+    72,
+    355,
+    900,
+    3,
+    82,
+    56,
+    800,
+    1.08
+  );
   ctx.fillStyle = "#475569";
-  ctx.font = "400 31px Arial, sans-serif";
-  const supportY = drawWrappedText(
+  const supportY = drawFittedWrappedText(
     ctx,
     data.supportingText,
     76,
     nextY + 32,
     820,
-    43,
-    3
+    3,
+    31,
+    25,
+    400,
+    1.38
   );
   drawCta(
     ctx,
@@ -311,7 +479,7 @@ function drawCleanTemplate(
     primary,
     getContrastColor(primary)
   );
-  drawFooter(ctx, data, secondary);
+  drawFooter(ctx, data, headlineColor);
 }
 
 function drawPhotoTemplate(
@@ -333,18 +501,30 @@ function drawPhotoTemplate(
 
   drawBrandHeader(ctx, data, logo, "#ffffff", "rgba(255,255,255,0.94)");
   ctx.fillStyle = "#ffffff";
-  ctx.font = "800 82px Arial, sans-serif";
-  const nextY = drawWrappedText(ctx, data.headline, 72, 430, 900, 92, 3);
+  const nextY = drawFittedWrappedText(
+    ctx,
+    data.headline,
+    72,
+    430,
+    900,
+    3,
+    82,
+    56,
+    800,
+    1.08
+  );
   ctx.globalAlpha = 0.92;
-  ctx.font = "400 30px Arial, sans-serif";
-  const supportY = drawWrappedText(
+  const supportY = drawFittedWrappedText(
     ctx,
     data.supportingText,
     76,
     nextY + 28,
     820,
-    42,
-    3
+    3,
+    30,
+    24,
+    400,
+    1.4
   );
   ctx.globalAlpha = 1;
   drawCta(
