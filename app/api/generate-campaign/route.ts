@@ -19,6 +19,10 @@ type CampaignResult = {
   marketingTip: string;
 };
 
+function normalizeMarketingCopy(value: string) {
+  return value.replace(/\bWhatApp\b/gi, "WhatsApp").trim();
+}
+
 function parseCampaignResult(text: string): CampaignResult {
   const withoutFences = text
     .trim()
@@ -47,7 +51,14 @@ function parseCampaignResult(text: string): CampaignResult {
     }
   }
 
-  return parsed as CampaignResult;
+  const validResult = parsed as CampaignResult;
+
+  return {
+    socialCaption: normalizeMarketingCopy(validResult.socialCaption),
+    whatsappPromo: normalizeMarketingCopy(validResult.whatsappPromo),
+    adCopy: normalizeMarketingCopy(validResult.adCopy),
+    marketingTip: normalizeMarketingCopy(validResult.marketingTip),
+  };
 }
 
 function createFallbackCampaign({
@@ -68,7 +79,7 @@ function createFallbackCampaign({
   instagram: string;
 }): CampaignResult {
   const name = businessName || businessType;
-  const cta = preferredCta || "Contact us today";
+  const cta = normalizeMarketingCopy(preferredCta || "Contact us today");
   const contact = phone || website || instagram;
   const contactText = contact ? ` ${contact}` : "";
 
