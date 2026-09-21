@@ -119,8 +119,8 @@ function ResultCard({
   copied,
 }: ResultCardProps) {
   return (
-    <div className="group rounded-2xl border border-white/10 bg-white/[0.035] p-5 transition hover:border-violet-400/30 hover:bg-white/[0.055]">
-      <div className="flex items-start justify-between gap-4">
+    <div className="group rounded-2xl border border-white/10 bg-white/[0.035] p-4 transition hover:border-violet-400/30 hover:bg-white/[0.055] sm:p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <h3 className="text-sm font-semibold text-white">{title}</h3>
 
         <button
@@ -812,32 +812,32 @@ export default function DashboardPage() {
 
               {result && (
                 <section className="mx-auto max-w-5xl space-y-7">
-                  <div className="grid grid-cols-[2.25rem_minmax(0,1fr)] gap-3">
-                    <div aria-hidden="true" />
-                    <div className="ml-auto w-full max-w-2xl rounded-3xl rounded-br-md bg-gradient-to-br from-violet-600 to-indigo-600 px-5 py-4 shadow-lg shadow-violet-950/30">
-                    <p className="whitespace-pre-line text-sm leading-6 text-white">
-                      {generatedPrompt}
-                    </p>
-                    {generatedAttachmentUrl && (
-                      <div className="mt-3 overflow-hidden rounded-xl border border-white/20">
-                        <Image
-                          src={generatedAttachmentUrl}
-                          alt="Image attached to campaign prompt"
-                          width={640}
-                          height={360}
-                          unoptimized
-                          className="max-h-48 w-full object-cover"
-                        />
-                      </div>
-                    )}
+                  <div className="grid sm:grid-cols-[2.25rem_minmax(0,1fr)] sm:gap-3">
+                    <div aria-hidden="true" className="hidden sm:block" />
+                    <div className="ml-auto w-full max-w-2xl rounded-3xl rounded-br-md bg-gradient-to-br from-violet-600 to-indigo-600 px-4 py-4 shadow-lg shadow-violet-950/30 sm:px-5">
+                      <p className="whitespace-pre-line text-sm leading-6 text-white">
+                        {generatedPrompt}
+                      </p>
+                      {generatedAttachmentUrl && (
+                        <div className="mt-3 overflow-hidden rounded-xl border border-white/20">
+                          <Image
+                            src={generatedAttachmentUrl}
+                            alt="Image attached to campaign prompt"
+                            width={640}
+                            height={360}
+                            unoptimized
+                            className="max-h-48 w-full object-cover"
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  <div className="flex gap-3">
-                    <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-500/15 text-violet-300">
+                  <div className="flex gap-0 sm:gap-3">
+                    <div className="mt-1 hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-500/15 text-violet-300 sm:flex">
                       ✦
                     </div>
-                    <div className="min-w-0 flex-1 rounded-3xl rounded-tl-md border border-white/10 bg-[#10121a]/90 p-5 shadow-2xl shadow-black/20 backdrop-blur-xl sm:p-7">
+                    <div className="min-w-0 flex-1 rounded-3xl border border-white/10 bg-[#10121a]/90 p-4 shadow-2xl shadow-black/20 backdrop-blur-xl sm:rounded-tl-md sm:p-7">
                       <div className="flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-300">
@@ -907,7 +907,7 @@ export default function DashboardPage() {
                               Upgrade poster limit →
                             </Link>
                           ) : (
-                            <div className="flex gap-2">
+                            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
                               <select
                                 value={posterTemplate}
                                 onChange={(event) =>
@@ -917,7 +917,7 @@ export default function DashboardPage() {
                                 }
                                 disabled={isGeneratingPoster}
                                 aria-label="Poster style"
-                                className="rounded-xl border border-white/10 bg-[#151722] px-3 py-2.5 text-sm text-slate-200 outline-none"
+                                className="w-full rounded-xl border border-white/10 bg-[#151722] px-3 py-2.5 text-sm text-slate-200 outline-none sm:w-auto"
                               >
                                 <option value="bold">Bold gradient</option>
                                 <option value="clean">Clean minimal</option>
@@ -927,7 +927,7 @@ export default function DashboardPage() {
                                 type="button"
                                 onClick={handleGeneratePoster}
                                 disabled={isGeneratingPoster}
-                                className="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-violet-500 disabled:opacity-60"
+                                className="w-full rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-violet-500 disabled:opacity-60 sm:w-auto"
                               >
                                 {isGeneratingPoster ? "Creating..." : "Create poster"}
                               </button>
@@ -948,7 +948,7 @@ export default function DashboardPage() {
                                 1080 × 1080 PNG
                               </p>
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap gap-2">
                               <a
                                 href={posterUrl}
                                 download="marketa-poster.png"

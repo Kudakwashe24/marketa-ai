@@ -17,10 +17,10 @@ export default function HowItWorks() {
   return (
     <section
       id="how-it-works"
-      className="border-b border-white/5 bg-[#090a10] py-24"
+      className="border-b border-white/5 bg-[#090a10] py-16 sm:py-24"
     >
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="mb-12 text-center">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="mb-8 text-center sm:mb-12">
           <p className="inline-block rounded-full border border-violet-400/20 bg-violet-500/10 px-3 py-1 text-sm font-medium text-violet-300">
             How it works
           </p>

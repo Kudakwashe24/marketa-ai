@@ -6,8 +6,8 @@ import { Show, UserButton } from "@clerk/nextjs";
 export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-[#07080d]/80 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-white">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
+        <Link href="/" className="flex shrink-0 items-center gap-2 text-base font-semibold text-white sm:text-lg">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-cyan-400 text-sm shadow-lg shadow-violet-950/40">M</span>
           Marketa AI
         </Link>
@@ -24,18 +24,18 @@ export default function Navbar() {
           </Link>
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center justify-end gap-1.5 sm:gap-3">
           <Show when="signed-out">
             <Link
               href="/login"
-              className="rounded-lg px-4 py-2 text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white"
+              className="hidden rounded-lg px-4 py-2 text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white sm:inline-flex"
             >
               Log in
             </Link>
 
             <Link
               href="/signup"
-              className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-950 hover:bg-slate-200"
+              className="whitespace-nowrap rounded-lg bg-white px-3 py-2 text-xs font-medium text-slate-950 hover:bg-slate-200 sm:px-4 sm:text-sm"
             >
               Get Started
             </Link>
@@ -44,7 +44,7 @@ export default function Navbar() {
           <Show when="signed-in">
             <Link
               href="/dashboard"
-              className="rounded-lg px-4 py-2 text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white"
+              className="rounded-lg px-3 py-2 text-xs font-medium text-slate-300 hover:bg-white/5 hover:text-white sm:px-4 sm:text-sm"
             >
               Dashboard
             </Link>

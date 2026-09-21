@@ -13,10 +13,10 @@ export default function WhoItsFor() {
   return (
     <section
       id="who-its-for"
-      className="border-b border-white/5 bg-[#07080d] py-24"
+      className="border-b border-white/5 bg-[#07080d] py-16 sm:py-24"
     >
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="mb-12 text-center">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="mb-8 text-center sm:mb-12">
           <p className="inline-block rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-sm font-medium text-cyan-200">
             Who it&apos;s for
           </p>

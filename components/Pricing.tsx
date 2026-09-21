@@ -87,8 +87,8 @@ const plans = [
 
 export default function Pricing() {
   return (
-    <section id="pricing" className="border-b border-white/5 bg-[#07080d] py-24">
-      <div className="mx-auto max-w-7xl px-6">
+    <section id="pricing" className="border-b border-white/5 bg-[#07080d] py-16 sm:py-24">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="text-center">
           <p className="inline-block rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm font-medium text-slate-300">
             Pricing
@@ -104,11 +104,11 @@ export default function Pricing() {
           </p>
         </div>
 
-        <div className="mt-14 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-10 grid gap-5 sm:mt-14 sm:gap-6 md:grid-cols-2 xl:grid-cols-4">
           {plans.map((plan) => (
             <div
               key={plan.name}
-              className={`ai-card-lift group relative flex h-full flex-col rounded-3xl border p-8 shadow-sm ${
+              className={`ai-card-lift group relative flex h-full flex-col rounded-3xl border p-6 shadow-sm sm:p-8 ${
                 plan.featured
                   ? "border-violet-400/40 bg-gradient-to-b from-violet-600/20 to-[#10121a] text-white shadow-2xl shadow-violet-950/30"
                   : "border-white/10 bg-white/[0.035] text-white"
@@ -125,7 +125,7 @@ export default function Pricing() {
                 <h3 className="text-2xl font-bold">{plan.name}</h3>
 
                 <div className="mt-4 flex items-end gap-1">
-                  <span className="text-5xl font-semibold">{plan.price}</span>
+                  <span className="text-4xl font-semibold sm:text-5xl">{plan.price}</span>
                   <span
                     className={`pb-1 text-sm ${
                       plan.featured ? "text-violet-200" : "text-slate-500"

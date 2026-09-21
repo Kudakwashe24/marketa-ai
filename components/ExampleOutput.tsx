@@ -1,8 +1,8 @@
 export default function ExampleOutput() {
   return (
-    <section id="example-output" className="border-b border-white/5 bg-[#090a10] py-24">
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="mb-12">
+    <section id="example-output" className="border-b border-white/5 bg-[#090a10] py-16 sm:py-24">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="mb-8 sm:mb-12">
           <p className="inline-block rounded-full border border-violet-400/20 bg-violet-500/10 px-3 py-1 text-sm font-medium text-violet-300">
             Example output
           </p>
@@ -17,8 +17,8 @@ export default function ExampleOutput() {
           </p>
         </div>
 
-        <div className="rounded-3xl border border-white/10 bg-[#10121a] p-8 shadow-2xl shadow-black/30">
-          <div className="mb-8 grid md:grid-cols-2 md:gap-6">
+        <div className="rounded-3xl border border-white/10 bg-[#10121a] p-4 shadow-2xl shadow-black/30 sm:p-8">
+          <div className="mb-6 grid md:mb-8 md:grid-cols-2 md:gap-6">
             <div className="rounded-2xl rounded-br-md bg-gradient-to-br from-violet-600 to-indigo-600 p-4 shadow-lg shadow-violet-950/30 md:col-start-2">
               <p className="text-xs font-medium uppercase tracking-wider text-violet-200">
                 Your prompt
@@ -31,7 +31,7 @@ export default function ExampleOutput() {
             </div>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
             <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-5">
               <h3 className="font-semibold text-white">
                 📱 Social Media Caption

@@ -2,7 +2,7 @@ import { SignIn } from "@clerk/nextjs";
 
 export default function LoginPage() {
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#07080d] px-6 py-12">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#07080d] px-3 py-8 sm:px-6 sm:py-12">
       <div className="pointer-events-none absolute inset-0 ai-grid opacity-40" />
       <div className="pointer-events-none absolute top-[-18rem] h-[36rem] w-[36rem] rounded-full bg-violet-600/20 blur-[130px]" />
       <div className="w-full max-w-md">

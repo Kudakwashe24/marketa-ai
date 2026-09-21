@@ -209,7 +209,7 @@ export default function BusinessProfilePage() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-[#07080d] px-6 py-12">
+      <main className="min-h-screen bg-[#07080d] px-4 py-10 sm:px-6 sm:py-12">
         <p className="mx-auto max-w-5xl text-slate-400">
           Loading your business profile...
         </p>
@@ -218,7 +218,7 @@ export default function BusinessProfilePage() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#07080d] px-6 py-10 text-white">
+    <main className="relative min-h-screen overflow-hidden bg-[#07080d] px-4 py-8 text-white sm:px-6 sm:py-10">
       <div className="pointer-events-none fixed inset-0 ai-grid opacity-30" />
       <div className="pointer-events-none fixed left-1/2 top-[-22rem] h-[42rem] w-[42rem] -translate-x-1/2 rounded-full bg-violet-600/15 blur-[140px]" />
       <div className="relative mx-auto max-w-5xl">
@@ -255,7 +255,7 @@ export default function BusinessProfilePage() {
         )}
 
         <form onSubmit={handleSave} className="space-y-8">
-          <section className="rounded-3xl border border-white/10 bg-[#10121a]/90 p-6 shadow-2xl shadow-black/20 backdrop-blur-xl">
+          <section className="rounded-3xl border border-white/10 bg-[#10121a]/90 p-4 shadow-2xl shadow-black/20 backdrop-blur-xl sm:p-6">
             <h2 className="text-xl font-semibold text-white">
               Business details
             </h2>
@@ -367,7 +367,7 @@ export default function BusinessProfilePage() {
             </div>
           </section>
 
-          <section className="rounded-3xl border border-white/10 bg-[#10121a]/90 p-6 shadow-2xl shadow-black/20 backdrop-blur-xl">
+          <section className="rounded-3xl border border-white/10 bg-[#10121a]/90 p-4 shadow-2xl shadow-black/20 backdrop-blur-xl sm:p-6">
             <h2 className="text-xl font-semibold text-white">
               Brand personality
             </h2>
@@ -426,7 +426,7 @@ export default function BusinessProfilePage() {
             </div>
           </section>
 
-          <section className="rounded-3xl border border-white/10 bg-[#10121a]/90 p-6 shadow-2xl shadow-black/20 backdrop-blur-xl">
+          <section className="rounded-3xl border border-white/10 bg-[#10121a]/90 p-4 shadow-2xl shadow-black/20 backdrop-blur-xl sm:p-6">
             <h2 className="text-xl font-semibold text-white">
               Logo and business photos
             </h2>
@@ -488,7 +488,7 @@ export default function BusinessProfilePage() {
                 </p>
 
                 {profile.brandImages.length > 0 ? (
-                  <div className="mt-4 grid grid-cols-3 gap-3">
+                  <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {profile.brandImages.map((url) => (
                       <div key={url} className="group relative">
                         <Image
@@ -538,7 +538,7 @@ export default function BusinessProfilePage() {
               disabled={
                 isSaving || uploadingAsset !== null || removingAsset !== null
               }
-              className="rounded-xl bg-violet-600 px-6 py-3 font-medium text-white hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-xl bg-violet-600 px-6 py-3 font-medium text-white hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
             >
               {isSaving ? "Saving..." : "Save Business Profile"}
             </button>

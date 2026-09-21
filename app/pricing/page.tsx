@@ -11,8 +11,8 @@ export default function PricingPage() {
       <div className="relative">
         <Pricing />
 
-        <section className="border-b border-white/5 bg-[#090a10] px-6 pb-24">
-          <div className="mx-auto max-w-7xl rounded-3xl border border-white/10 bg-white/[0.035] p-8">
+        <section className="border-b border-white/5 bg-[#090a10] px-4 pb-16 sm:px-6 sm:pb-24">
+          <div className="mx-auto max-w-7xl rounded-3xl border border-white/10 bg-white/[0.035] p-5 sm:p-8">
             <p className="text-sm font-medium text-violet-300">Choose confidently</p>
             <h2 className="mt-2 text-2xl font-semibold text-white">
               Every plan is built around features that exist today
