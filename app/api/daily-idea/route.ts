@@ -2,43 +2,79 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { getGeminiClient } from "@/lib/gemini";
 import { getBusinessProfile } from "@/lib/businessProfile";
-import { PLAN_CONFIGS } from "@/lib/plans";
-import { getOrCreateUserPlan } from "@/lib/userPlan";
 
-const FALLBACK_IDEAS = [
-  {
-    title: "Show the Result",
-    idea: "Share one before-and-after result from your business today and add a simple call to action inviting customers to enquire or book.",
-  },
-  {
-    title: "Ask Your Customers",
-    idea: "Post a quick this-or-that question related to your products or services and invite customers to reply on WhatsApp or social media.",
-  },
-  {
-    title: "Behind the Scenes",
-    idea: "Show a short behind-the-scenes photo or video of how you prepare your product or deliver your service, then explain what makes your process special.",
-  },
-  {
-    title: "Customer Favourite",
-    idea: "Highlight your most popular product or service, explain why customers love it, and finish with a clear call to action.",
-  },
-  {
-    title: "Limited-Time Reminder",
-    idea: "Choose one offer to promote today, give it a clear deadline, and share it on both your social media story and WhatsApp Status.",
-  },
-];
+type DailyIdeaContext = {
+  businessName: string;
+  businessType: string;
+  description: string;
+  targetAudience: string;
+  location: string;
+  brandVoice: string;
+  preferredCta: string;
+};
 
-function getFallbackIdea(businessType: string) {
+const DEFAULT_CONTEXT: DailyIdeaContext = {
+  businessName: "",
+  businessType: "Local Service Business",
+  description: "",
+  targetAudience: "",
+  location: "",
+  brandVoice: "Friendly",
+  preferredCta: "",
+};
+
+function cleanContextValue(value: string) {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function getFallbackIdea(context: DailyIdeaContext) {
   const dayNumber = Math.floor(Date.now() / 86_400_000);
-  const fallback = FALLBACK_IDEAS[dayNumber % FALLBACK_IDEAS.length];
+  const businessName = context.businessName || "your business";
+  const offering = cleanContextValue(
+    context.description || context.businessType
+  ).toLowerCase();
+  const audience = context.targetAudience
+    ? ` for ${cleanContextValue(context.targetAudience)}`
+    : "";
+  const location = context.location
+    ? ` in ${cleanContextValue(context.location)}`
+    : "";
+  const cta = context.preferredCta
+    ? `Finish with “${cleanContextValue(context.preferredCta).replace(
+        /\bWhatApp\b/gi,
+        "WhatsApp"
+      )}”.`
+    : "Finish by inviting people to message you for more information.";
 
-  return {
-    title: fallback.title,
-    idea: `${fallback.idea} Tailor it to your ${businessType.toLowerCase()} customers.`,
-  };
+  const ideas = [
+    {
+      title: "Show a Real Result",
+      idea: `Share one recent result or before-and-after example from ${businessName}. Explain how your ${offering} helped the customer${location}. ${cta}`,
+    },
+    {
+      title: "Teach One Useful Tip",
+      idea: `Post one quick tip about ${offering}${audience}. Keep it practical, explain how ${businessName} can help, and ${cta.charAt(0).toLowerCase()}${cta.slice(1)}`,
+    },
+    {
+      title: "Behind Your Process",
+      idea: `Show a short photo or video of how ${businessName} delivers ${offering}. Highlight one detail that makes your work valuable${audience}. ${cta}`,
+    },
+    {
+      title: "Answer a Customer Question",
+      idea: `Choose one question customers often ask about ${offering} and answer it in a short post. Mention ${businessName}${location} and ${cta.charAt(0).toLowerCase()}${cta.slice(1)}`,
+    },
+    {
+      title: "Promote One Clear Offer",
+      idea: `Create a simple limited-time offer around one part of your ${offering}${audience}. State the benefit clearly, add a deadline, and ${cta.charAt(0).toLowerCase()}${cta.slice(1)}`,
+    },
+  ];
+
+  return ideas[dayNumber % ideas.length];
 }
 
 export async function GET(req: Request) {
+  let fallbackContext = DEFAULT_CONTEXT;
+
   try {
     const { userId } = await auth();
 
@@ -46,60 +82,54 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { plan } = await getOrCreateUserPlan(userId);
-    const planConfig = PLAN_CONFIGS[plan];
-
     const { searchParams } = new URL(req.url);
-    let savedBusinessType = "";
+    let profile: Awaited<ReturnType<typeof getBusinessProfile>> = null;
 
     try {
-      const profile = await getBusinessProfile(userId);
-      savedBusinessType =
-        profile?.customBusinessType || profile?.businessType || "";
+      profile = await getBusinessProfile(userId);
     } catch (profileError) {
       console.warn("Daily idea business profile unavailable:", profileError);
     }
 
+    const requestedBusinessType =
+      searchParams.get("businessType")?.trim().slice(0, 100) || "";
     const businessType =
-      searchParams.get("businessType") ||
-      savedBusinessType ||
-      "Local Service Business";
+      profile?.customBusinessType ||
+      profile?.businessType ||
+      requestedBusinessType ||
+      DEFAULT_CONTEXT.businessType;
 
-    const prompt = planConfig.personalizedDailyIdea
-      ? `
-You are Marketa AI, an AI marketing assistant for businesses.
+    fallbackContext = {
+      businessName: profile?.businessName || "",
+      businessType,
+      description: profile?.description || "",
+      targetAudience: profile?.targetAudience || "",
+      location: profile?.location || "",
+      brandVoice: profile?.brandVoice || "Friendly",
+      preferredCta: profile?.preferredCta || "",
+    };
 
-Generate one practical daily marketing idea specifically for this business type:
-${businessType}
+    const prompt = `
+You are Marketa AI, an AI marketing assistant.
 
-Rules:
-- Keep it short
-- Keep it useful
-- Keep it beginner-friendly
-- Make it suitable for social media or WhatsApp promotion
-- Return valid JSON only
-- Do not use markdown
-- Do not use code fences
-
-Return this exact JSON shape:
-{
-  "title": "string",
-  "idea": "string"
-}
-`
-      : `
-You are Marketa AI, an AI marketing assistant for businesses.
-
-Generate one practical daily marketing idea for a small business owner.
+Create one practical marketing idea for this specific business:
+- Business name: ${fallbackContext.businessName || "Not provided"}
+- Business type: ${fallbackContext.businessType}
+- Products or services: ${fallbackContext.description || "Not provided"}
+- Ideal customers: ${fallbackContext.targetAudience || "Not provided"}
+- Location: ${fallbackContext.location || "Not provided"}
+- Brand voice: ${fallbackContext.brandVoice}
+- Preferred call to action: ${fallbackContext.preferredCta || "Not provided"}
 
 Rules:
-- Keep it short
-- Keep it useful
-- Keep it beginner-friendly
-- Make it suitable for social media or WhatsApp promotion
-- Return valid JSON only
-- Do not use markdown
-- Do not use code fences
+- Make the idea clearly relevant to the saved products, services, and customers
+- Mention the business name or a real service when that information is available
+- Give one action the owner can complete today
+- Make it suitable for social media or WhatsApp
+- Keep it short, useful, and beginner-friendly
+- Never invent prices, products, customer results, or business details
+- Do not say “tailor this to your business”
+- Return valid JSON only, without markdown or code fences
 
 Return this exact JSON shape:
 {
@@ -111,10 +141,12 @@ Return this exact JSON shape:
     const response = await getGeminiClient().models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+      },
     });
 
-    const text = response.text ?? "";
-    const parsed = JSON.parse(text.trim());
+    const parsed = JSON.parse((response.text ?? "").trim());
 
     if (
       typeof parsed?.title !== "string" ||
@@ -125,7 +157,7 @@ Return this exact JSON shape:
 
     return NextResponse.json(parsed);
   } catch (error) {
-    console.warn("Using fallback daily idea:", error);
-    return NextResponse.json(getFallbackIdea("small business"));
+    console.warn("Using profile-aware fallback daily idea:", error);
+    return NextResponse.json(getFallbackIdea(fallbackContext));
   }
 }
