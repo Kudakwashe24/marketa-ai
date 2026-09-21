@@ -1,26 +1,26 @@
 export default function ExampleOutput() {
   return (
-    <section id="example-output" className="bg-white py-20">
+    <section id="example-output" className="border-b border-white/5 bg-[#090a10] py-24">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mb-12">
-          <p className="inline-block rounded-full bg-cyan-100 px-3 py-1 text-sm font-medium text-cyan-700">
+          <p className="inline-block rounded-full border border-violet-400/20 bg-violet-500/10 px-3 py-1 text-sm font-medium text-violet-300">
             Example output
           </p>
 
-          <h2 className="mt-4 text-3xl font-bold text-slate-900 md:text-4xl">
+          <h2 className="mt-4 text-3xl font-semibold text-white md:text-5xl">
             One idea becomes a full campaign
           </h2>
 
-          <p className="mt-4 max-w-2xl text-slate-600">
+          <p className="mt-4 max-w-2xl text-slate-400">
             Marketa AI turns one simple request into content you can actually
             use across different channels.
           </p>
         </div>
 
-        <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-8 shadow-sm">
-          <div className="mb-8 rounded-2xl bg-slate-50 p-4">
-            <p className="text-sm font-medium text-slate-500">Prompt</p>
-            <p className="mt-2 text-slate-800">
+        <div className="rounded-3xl border border-white/10 bg-[#10121a] p-8 shadow-2xl shadow-black/30">
+          <div className="mb-8 ml-auto max-w-2xl rounded-2xl rounded-br-md bg-violet-600 p-4">
+            <p className="text-xs font-medium uppercase tracking-wider text-violet-200">Your prompt</p>
+            <p className="mt-2 text-white">
               Business Type: Salon / Barber
               <br />
               Promotion: Promote my weekend braids special.
@@ -28,49 +28,49 @@ export default function ExampleOutput() {
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
-            <div className="rounded-2xl border border-violet-100 bg-violet-50/60 p-5">
-              <h3 className="font-semibold text-slate-900">
-                Social Media Caption
+            <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-5">
+              <h3 className="font-semibold text-white">
+                📱 Social Media Caption
               </h3>
-              <p className="mt-3 text-sm leading-7 text-slate-600">
+              <p className="mt-3 text-sm leading-7 text-slate-400">
                 Weekend braids special now available ✨ Book your slot today and
                 refresh your look before Saturday and Sunday fill up.
               </p>
             </div>
 
-            <div className="rounded-2xl border border-cyan-100 bg-cyan-50/60 p-5">
-              <h3 className="font-semibold text-slate-900">
-                WhatsApp Promotion
+            <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-5">
+              <h3 className="font-semibold text-white">
+                💬 WhatsApp Promotion
               </h3>
-              <p className="mt-3 text-sm leading-7 text-slate-600">
+              <p className="mt-3 text-sm leading-7 text-slate-400">
                 Hi ladies 💜 We are running a weekend braids special. Limited
                 spaces available. Message us now to secure your booking.
               </p>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5">
-              <h3 className="font-semibold text-slate-900">Ad Copy</h3>
-              <p className="mt-3 text-sm leading-7 text-slate-600">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-5">
+              <h3 className="font-semibold text-white">🚀 Ad Copy</h3>
+              <p className="mt-3 text-sm leading-7 text-slate-400">
                 Book your weekend braids special today. Fresh styles, limited
                 spaces, and beautiful results for your next look.
               </p>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5">
-              <h3 className="font-semibold text-slate-900">Marketing Tip</h3>
-              <p className="mt-3 text-sm leading-7 text-slate-600">
-                Post a before-and-after client transformation to increase trust
-                and drive weekend bookings.
+            <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-5">
+              <h3 className="font-semibold text-white">💡 Marketing Tip</h3>
+              <p className="mt-3 text-sm leading-7 text-slate-400">
+                Share the campaign on your social feed and WhatsApp Status,
+                then follow up quickly with anyone who asks about availability.
               </p>
             </div>
 
-            <div className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-5 md:col-span-2">
-              <h3 className="font-semibold text-slate-900">
-                Daily Marketing Idea
+            <div className="rounded-2xl border border-violet-400/20 bg-violet-500/[0.07] p-5 md:col-span-2">
+              <h3 className="font-semibold text-white">
+                🎨 Optional Branded Poster
               </h3>
-              <p className="mt-3 text-sm leading-7 text-slate-600">
-                Share a quick client reaction video after their hairstyle is
-                done and invite followers to book this weekend.
+              <p className="mt-3 text-sm leading-7 text-slate-400">
+                Turn the approved campaign into a static poster using your logo,
+                brand colours and selected business image.
               </p>
             </div>
           </div>

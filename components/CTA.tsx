@@ -2,23 +2,24 @@ import Link from "next/link";
 
 export default function CTA() {
   return (
-    <section className="px-6 py-20">
-      <div className="mx-auto max-w-7xl overflow-hidden rounded-[2rem] bg-gradient-to-r from-slate-900 via-violet-900 to-slate-900 px-8 py-16 text-white shadow-2xl">
+    <section className="bg-[#090a10] px-6 py-24">
+      <div className="relative mx-auto max-w-7xl overflow-hidden rounded-[2rem] border border-violet-400/20 bg-gradient-to-r from-[#11131d] via-violet-950 to-[#11131d] px-8 py-16 text-white shadow-2xl shadow-black/40">
+        <div className="pointer-events-none absolute left-1/2 top-[-12rem] h-80 w-80 -translate-x-1/2 rounded-full bg-violet-500/25 blur-[100px]" />
         <div className="mx-auto max-w-3xl text-center">
-          <p className="inline-block rounded-full bg-white/10 px-3 py-1 text-sm font-medium text-white/90">
+          <p className="relative inline-block rounded-full bg-white/10 px-3 py-1 text-sm font-medium text-white/90">
             Ready to grow?
           </p>
 
-          <h2 className="mt-4 text-3xl font-bold md:text-5xl">
-            Start free, then unlock more as your business grows
+          <h2 className="relative mt-4 text-3xl font-semibold md:text-5xl">
+            Your next campaign starts with one sentence
           </h2>
 
-          <p className="mx-auto mt-5 max-w-2xl text-base leading-8 text-slate-300 md:text-lg">
-            Create campaigns, use templates, generate posters, save your
-            history, and upgrade when you’re ready for more marketing power.
+          <p className="relative mx-auto mt-5 max-w-2xl text-base leading-8 text-slate-300 md:text-lg">
+            Build brand-aware copy, reuse your best prompts and create optional
+            static posters from the same AI conversation.
           </p>
 
-          <div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
+          <div className="relative mt-8 flex flex-col justify-center gap-4 sm:flex-row">
             <Link
               href="/signup"
               className="rounded-xl bg-white px-6 py-3 font-medium text-slate-900 transition hover:bg-slate-100"

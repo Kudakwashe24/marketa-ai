@@ -15,9 +15,11 @@ const plans = [
       "Marketing tips",
       "Daily marketing ideas",
       "Basic campaign history",
+      "3 branded posters / month",
+      "Upload images for campaign context",
     ],
     limitations: [
-      "No poster generation",
+      "Small Marketa watermark on posters",
       "No templates",
       "No advanced history tools",
     ],
@@ -31,11 +33,12 @@ const plans = [
     highlight: "30 campaigns / month",
     featured: false,
     features: [
-      "10 posters / month",
+      "20 branded posters / month",
       "Business-type templates",
       "Search campaign history",
       "Delete campaign history",
-      "Poster generation",
+      "No poster watermark",
+      "Image-aware campaigns",
       "Daily marketing ideas",
     ],
     limitations: [],
@@ -54,7 +57,8 @@ const plans = [
       "Business-type templates",
       "Advanced history tools",
       "Search and delete history",
-      "Poster generation",
+      "No poster watermark",
+      "Image-aware campaigns",
       "Personalized daily ideas",
     ],
     limitations: [],
@@ -72,7 +76,8 @@ const plans = [
       "Business-type templates",
       "Advanced history tools",
       "Search and delete history",
-      "Poster generation",
+      "No poster watermark",
+      "Image-aware campaigns",
       "Personalized daily ideas",
     ],
     limitations: [],
@@ -82,18 +87,18 @@ const plans = [
 
 export default function Pricing() {
   return (
-    <section id="pricing" className="bg-slate-50 py-20">
+    <section id="pricing" className="border-b border-white/5 bg-[#07080d] py-24">
       <div className="mx-auto max-w-7xl px-6">
         <div className="text-center">
-          <p className="inline-block rounded-full bg-slate-200 px-3 py-1 text-sm font-medium text-slate-700">
+          <p className="inline-block rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm font-medium text-slate-300">
             Pricing
           </p>
 
-          <h2 className="mt-4 text-3xl font-bold text-slate-900 md:text-4xl">
+          <h2 className="mt-4 text-3xl font-semibold text-white md:text-5xl">
             Simple plans for different stages of growth
           </h2>
 
-          <p className="mx-auto mt-4 max-w-2xl text-slate-600">
+          <p className="mx-auto mt-4 max-w-2xl text-slate-400">
             Start free, then unlock more campaigns, posters, templates, and
             advanced tools as your business grows.
           </p>
@@ -105,8 +110,8 @@ export default function Pricing() {
               key={plan.name}
               className={`relative flex h-full flex-col rounded-3xl border p-8 shadow-sm ${
                 plan.featured
-                  ? "border-slate-900 bg-slate-900 text-white"
-                  : "border-slate-200 bg-white text-slate-900"
+                  ? "border-violet-400/40 bg-gradient-to-b from-violet-600/20 to-[#10121a] text-white shadow-2xl shadow-violet-950/30"
+                  : "border-white/10 bg-white/[0.035] text-white"
               }`}
             >
               {plan.badge && (
@@ -119,10 +124,10 @@ export default function Pricing() {
                 <h3 className="text-2xl font-bold">{plan.name}</h3>
 
                 <div className="mt-4 flex items-end gap-1">
-                  <span className="text-5xl font-bold">{plan.price}</span>
+                  <span className="text-5xl font-semibold">{plan.price}</span>
                   <span
                     className={`pb-1 text-sm ${
-                      plan.featured ? "text-slate-300" : "text-slate-500"
+                      plan.featured ? "text-violet-200" : "text-slate-500"
                     }`}
                   >
                     {plan.period}
@@ -131,7 +136,7 @@ export default function Pricing() {
 
                 <p
                   className={`mt-4 text-sm leading-6 ${
-                    plan.featured ? "text-slate-300" : "text-slate-600"
+                    plan.featured ? "text-slate-300" : "text-slate-400"
                   }`}
                 >
                   {plan.description}
@@ -140,8 +145,8 @@ export default function Pricing() {
                 <div
                   className={`mt-6 rounded-2xl px-4 py-3 text-center text-sm font-semibold ${
                     plan.featured
-                      ? "bg-white text-slate-900"
-                      : "bg-slate-100 text-slate-900"
+                      ? "bg-violet-500/20 text-violet-100"
+                      : "bg-white/5 text-slate-200"
                   }`}
                 >
                   {plan.highlight}
@@ -151,7 +156,7 @@ export default function Pricing() {
               <div className="mt-8 flex-1">
                 <p
                   className={`text-sm font-semibold ${
-                    plan.featured ? "text-white" : "text-slate-900"
+                    plan.featured ? "text-white" : "text-slate-200"
                   }`}
                 >
                   Included
@@ -159,7 +164,7 @@ export default function Pricing() {
 
                 <ul
                   className={`mt-4 space-y-3 text-sm ${
-                    plan.featured ? "text-slate-200" : "text-slate-600"
+                    plan.featured ? "text-slate-200" : "text-slate-400"
                   }`}
                 >
                   {plan.features.map((feature) => (
@@ -174,7 +179,7 @@ export default function Pricing() {
                   <>
                     <p
                       className={`mt-8 text-sm font-semibold ${
-                        plan.featured ? "text-white" : "text-slate-900"
+                        plan.featured ? "text-white" : "text-slate-200"
                       }`}
                     >
                       Not included
@@ -182,7 +187,7 @@ export default function Pricing() {
 
                     <ul
                       className={`mt-4 space-y-3 text-sm ${
-                        plan.featured ? "text-slate-300" : "text-slate-500"
+                        plan.featured ? "text-slate-400" : "text-slate-500"
                       }`}
                     >
                       {plan.limitations.map((item) => (
@@ -200,8 +205,8 @@ export default function Pricing() {
                 href="/signup"
                 className={`mt-8 inline-block w-full rounded-xl px-6 py-3 text-center font-medium ${
                   plan.featured
-                    ? "bg-white text-slate-900 hover:bg-slate-100"
-                    : "bg-slate-900 text-white hover:bg-slate-700"
+                    ? "bg-white text-slate-950 hover:bg-violet-100"
+                    : "border border-white/10 bg-white/5 text-white hover:border-violet-400/30 hover:bg-violet-500/10"
                 }`}
               >
                 {plan.buttonText}

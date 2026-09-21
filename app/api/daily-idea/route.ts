@@ -57,23 +57,23 @@ function getFallbackIdea(context: DailyIdeaContext) {
 
   const ideas = [
     {
-      title: "Promote One Service",
+      title: "✨ Promote One Service",
       idea: `Create a social caption and matching static poster for one ${offering} service from ${businessName}${location}. Focus on one clear customer benefit${audience}. ${cta}`,
     },
     {
-      title: "Teach One Useful Tip",
+      title: "💡 Teach One Useful Tip",
       idea: `Create a short social caption with one practical tip about ${offering}${audience}. Explain how ${businessName} can help, and ${cta.charAt(0).toLowerCase()}${cta.slice(1)}`,
     },
     {
-      title: "Highlight a Customer Need",
+      title: "🎯 Highlight a Customer Need",
       idea: `Create a social caption and WhatsApp promotion about one common need ${businessName} solves with ${offering}${audience}. Keep the benefit clear and do not add unprovided claims. ${cta}`,
     },
     {
-      title: "Answer a Customer Question",
+      title: "💬 Answer a Customer Question",
       idea: `Create a short social caption answering one common question about ${offering}. Mention ${businessName}${location} and ${cta.charAt(0).toLowerCase()}${cta.slice(1)}`,
     },
     {
-      title: "Create a Clear Service Ad",
+      title: "🚀 Create a Clear Service Ad",
       idea: `Create concise ad copy and a static branded poster for ${businessName}'s ${offering}${audience}. Use only the business details already provided, explain one clear benefit, and ${cta.charAt(0).toLowerCase()}${cta.slice(1)}`,
     },
   ];
@@ -142,6 +142,7 @@ Rules:
 - Do not suggest videos, reels, filming, recording, live streams, animation, podcasts, or any other unsupported media
 - Do not require a customer result, testimonial, before-and-after example, photo, or other asset that was not provided
 - Make the idea suitable for social media or WhatsApp and immediately usable in Marketa AI
+- Use one relevant emoji naturally in the title or idea
 - Keep it short, useful, and beginner-friendly
 - Never invent prices, products, customer results, or business details
 - Do not say “tailor this to your business”

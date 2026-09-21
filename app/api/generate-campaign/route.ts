@@ -20,7 +20,50 @@ type CampaignResult = {
 };
 
 function normalizeMarketingCopy(value: string) {
-  return value.replace(/\bWhatApp\b/gi, "WhatsApp").trim();
+  return value
+    .replace(/\bWhatApp\b/gi, "WhatsApp")
+    .replace(/\bcape town\b/gi, "Cape Town")
+    .trim();
+}
+
+const ALLOWED_IMAGE_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+]);
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+
+async function getAttachmentPart(
+  attachmentUrl: string,
+  allowedUrls: string[]
+) {
+  if (!attachmentUrl) return null;
+
+  if (!allowedUrls.includes(attachmentUrl)) {
+    throw new Error("The attached image does not belong to this business.");
+  }
+
+  const response = await fetch(attachmentUrl);
+  if (!response.ok) {
+    throw new Error("The attached image could not be loaded.");
+  }
+
+  const mimeType = response.headers.get("content-type")?.split(";")[0] ?? "";
+  if (!ALLOWED_IMAGE_TYPES.has(mimeType)) {
+    throw new Error("The attached file must be a PNG, JPG, or WebP image.");
+  }
+
+  const bytes = Buffer.from(await response.arrayBuffer());
+  if (bytes.byteLength > MAX_IMAGE_SIZE) {
+    throw new Error("The attached image must be smaller than 5 MB.");
+  }
+
+  return {
+    inlineData: {
+      data: bytes.toString("base64"),
+      mimeType,
+    },
+  };
 }
 
 function parseCampaignResult(text: string): CampaignResult {
@@ -84,11 +127,11 @@ function createFallbackCampaign({
   const contactText = contact ? ` ${contact}` : "";
 
   return {
-    socialCaption: `${prompt}\n\n${name} is ready to help. ${cta}.${contactText}\n\n#SmallBusiness #SupportLocal`,
-    whatsappPromo: `Hi! ${name} has an offer for you: ${prompt} ${cta}.${contactText}`,
-    adCopy: `${prompt}\n\nChoose ${name} for your ${businessType.toLowerCase()} needs. ${cta}.`,
+    socialCaption: `✨ ${prompt}\n\n${name} is ready to help. ${cta}.${contactText}\n\n#SmallBusiness #SupportLocal`,
+    whatsappPromo: `Hi 👋 ${name} has an offer for you: ${prompt} ${cta}.${contactText}`,
+    adCopy: `🚀 ${prompt}\n\nChoose ${name} for your ${businessType.toLowerCase()} needs. ${cta}.`,
     marketingTip:
-      "Share this campaign on your social feed and WhatsApp Status, then follow up with anyone who replies or asks for more information.",
+      "💡 Share this campaign on your social feed and WhatsApp Status, then follow up with anyone who replies or asks for more information.",
   };
 }
 
@@ -105,6 +148,10 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     const prompt = body.prompt;
+    const attachmentUrl =
+      typeof body.attachmentUrl === "string"
+        ? body.attachmentUrl.trim().slice(0, 2_000)
+        : "";
     const requestedBusinessType =
       typeof body.businessType === "string"
         ? body.businessType.trim().slice(0, 100)
@@ -173,6 +220,9 @@ ${businessType}
 Promotion request:
 ${prompt}
 
+Uploaded image:
+${attachmentUrl ? "A business image is attached to this request." : "No image attached."}
+
 Saved business profile:
 - Business name: ${businessProfile?.businessName || "Not provided"}
 - Description: ${businessProfile?.description || "Not provided"}
@@ -199,7 +249,12 @@ Rules:
 - Keep the tone professional, simple, and practical
 - Make the content relevant to the business type
 - Make the output useful for small businesses
+- Use 1 to 3 relevant emojis naturally in the social caption and up to 2 in the WhatsApp promotion
+- The ad copy may use 1 relevant emoji; keep the marketing tip clear and practical
 - Use the saved business name, location, contact details, and preferred call to action naturally when relevant
+- If an image is attached, use visible details from it to improve the campaign, but do not guess anything that is not clearly shown
+- Only produce services Marketa offers: social captions, WhatsApp promotions, ad copy, marketing guidance, and static poster-ready copy
+- Do not promise video creation, reels, animation, photography, website building, ad management, or any other service unless the user's own business is explicitly promoting that service
 - Never invent contact details, prices, locations, opening hours, or claims that were not provided
 - No markdown
 - No code fences
@@ -209,9 +264,20 @@ Rules:
     let parsed: CampaignResult;
 
     try {
+      const attachmentPart = await getAttachmentPart(attachmentUrl, [
+        businessProfile?.logoUrl || "",
+        ...(businessProfile?.brandImages || []),
+      ]);
       const response = await getGeminiClient().models.generateContent({
         model: "gemini-2.5-flash",
-        contents: fullPrompt,
+        contents: attachmentPart
+          ? [
+              {
+                role: "user",
+                parts: [{ text: fullPrompt }, attachmentPart],
+              },
+            ]
+          : fullPrompt,
         config: {
           responseMimeType: "application/json",
         },

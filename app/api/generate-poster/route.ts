@@ -136,6 +136,12 @@ export async function POST(req: Request) {
       ? requestedTemplate
       : "bold";
     const profile = await getBusinessProfile(userId);
+    const requestedBrandImageUrl = cleanText(body.brandImageUrl, 2_000);
+    const brandImageUrl =
+      requestedBrandImageUrl &&
+      profile?.brandImages.includes(requestedBrandImageUrl)
+        ? requestedBrandImageUrl
+        : profile?.brandImages[0] || "";
     const fallbackBusinessType = cleanText(body.businessType, 120);
     const headline = getHeadline(adCopy, prompt);
 
@@ -162,7 +168,7 @@ export async function POST(req: Request) {
       primaryColor: profile?.primaryColor || "#4f46e5",
       secondaryColor: profile?.secondaryColor || "#0f172a",
       logoUrl: profile?.logoUrl || "",
-      brandImageUrl: profile?.brandImages[0] || "",
+      brandImageUrl,
       watermark: plan === "free",
     };
 

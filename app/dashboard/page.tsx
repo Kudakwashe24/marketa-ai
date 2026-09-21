@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { FormEvent, useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import { UserButton, useUser } from "@clerk/nextjs";
 import {
   BUSINESS_TYPES,
@@ -53,6 +53,8 @@ type BusinessProfileSummary = {
   businessName: string;
   businessType: string;
   customBusinessType: string;
+  logoUrl: string;
+  brandImages: string[];
 };
 
 type ResultCardProps = {
@@ -117,20 +119,22 @@ function ResultCard({
   copied,
 }: ResultCardProps) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="group rounded-2xl border border-white/10 bg-white/[0.035] p-5 transition hover:border-violet-400/30 hover:bg-white/[0.055]">
       <div className="flex items-start justify-between gap-4">
-        <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
+        <h3 className="text-sm font-semibold text-white">{title}</h3>
 
         <button
           type="button"
           onClick={onCopy}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-slate-300 transition hover:border-violet-400/40 hover:text-white"
         >
           {copied ? "Copied!" : "Copy"}
         </button>
       </div>
 
-      <p className="mt-3 whitespace-pre-line text-slate-700">{content}</p>
+      <p className="mt-3 whitespace-pre-line text-sm leading-7 text-slate-300">
+        {content}
+      </p>
     </div>
   );
 }
@@ -152,7 +156,7 @@ export default function DashboardPage() {
   const [history, setHistory] = useState<CampaignHistoryItem[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [dailyIdea, setDailyIdea] = useState<DailyIdea | null>(null);
-  const [isLoadingDailyIdea, setIsLoadingDailyIdea] = useState(true);
+  const [, setIsLoadingDailyIdea] = useState(true);
   const [historySearch, setHistorySearch] = useState("");
   const [isDeletingHistoryId, setIsDeletingHistoryId] = useState<number | null>(
     null
@@ -162,6 +166,11 @@ export default function DashboardPage() {
   const [posterError, setPosterError] = useState("");
   const [posterTemplate, setPosterTemplate] =
     useState<PosterTemplate>("bold");
+  const [attachmentUrl, setAttachmentUrl] = useState("");
+  const [attachmentName, setAttachmentName] = useState("");
+  const [generatedAttachmentUrl, setGeneratedAttachmentUrl] = useState("");
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const effectiveBusinessType = getEffectiveBusinessType(
     businessType,
@@ -292,6 +301,7 @@ export default function DashboardPage() {
         body: JSON.stringify({
           prompt: currentPrompt,
           businessType: effectiveBusinessType,
+          attachmentUrl,
         }),
       });
 
@@ -304,7 +314,10 @@ export default function DashboardPage() {
       setResult(data);
       setGeneratedPrompt(currentPrompt);
       setGeneratedBusinessType(effectiveBusinessType);
+      setGeneratedAttachmentUrl(attachmentUrl);
       setPrompt("");
+      setAttachmentUrl("");
+      setAttachmentName("");
       setCopiedField(null);
       await fetchUsage();
       await fetchHistory();
@@ -343,6 +356,7 @@ export default function DashboardPage() {
           whatsappPromo: result.whatsappPromo,
           adCopy: result.adCopy,
           template: posterTemplate,
+          brandImageUrl: generatedAttachmentUrl,
         }),
       });
 
@@ -427,6 +441,64 @@ export default function DashboardPage() {
     });
   };
 
+  const handleAttachmentUpload = async (
+    event: ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setIsUploadingAttachment(true);
+    setErrorMessage("");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("assetType", "photo");
+
+      const res = await fetch("/api/business-profile/assets", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to attach image.");
+      }
+
+      setAttachmentUrl(data.url);
+      setAttachmentName(file.name);
+      setBusinessProfile((current) =>
+        current
+          ? {
+              ...current,
+              logoUrl: data.profile?.logoUrl ?? current.logoUrl,
+              brandImages:
+                data.profile?.brandImages ?? current.brandImages,
+            }
+          : current
+      );
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Failed to attach image."
+      );
+    } finally {
+      setIsUploadingAttachment(false);
+    }
+  };
+
+  const startNewCampaign = () => {
+    setResult(null);
+    setPosterUrl(null);
+    setPosterError("");
+    setGeneratedPrompt("");
+    setGeneratedBusinessType("");
+    setGeneratedAttachmentUrl("");
+    setAttachmentUrl("");
+    setAttachmentName("");
+    setErrorMessage("");
+  };
+
   const handleDeleteHistoryItem = async (id: number) => {
     try {
       setIsDeletingHistoryId(id);
@@ -469,627 +541,594 @@ export default function DashboardPage() {
   const savedBusinessName = businessProfile?.businessName?.trim();
 
   return (
-    <main className="min-h-screen bg-slate-50 px-6 py-10">
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-8 flex items-start justify-between gap-4">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-indigo-600">
-              Marketa AI
-            </p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
-              Welcome, {firstName}
-            </h1>
-            <p className="mt-2 text-base text-slate-600 md:text-lg">
-              {savedBusinessName
-                ? `What are we promoting for ${savedBusinessName} today?`
-                : "What are we promoting today?"}
-            </p>
-          </div>
+    <main className="relative min-h-screen overflow-hidden bg-[#07080d] text-white">
+      <div className="pointer-events-none fixed inset-0 ai-grid opacity-30" />
+      <div className="pointer-events-none fixed left-[18%] top-[-18rem] h-[38rem] w-[38rem] rounded-full bg-violet-600/15 blur-[140px]" />
+      <div className="pointer-events-none fixed bottom-[-18rem] right-[-8rem] h-[34rem] w-[34rem] rounded-full bg-cyan-500/10 blur-[140px]" />
 
-          <div className="flex items-center gap-3">
+      <div className="relative flex min-h-screen">
+        <aside className="sticky top-0 hidden h-screen w-[19rem] shrink-0 flex-col border-r border-white/10 bg-black/20 px-4 py-5 backdrop-blur-xl lg:flex">
+          <Link href="/" className="flex items-center gap-3 px-2">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-cyan-400 font-bold text-white shadow-lg shadow-violet-950/40">
+              M
+            </span>
+            <div>
+              <p className="font-semibold tracking-tight text-white">Marketa AI</p>
+              <p className="text-xs text-slate-500">Marketing intelligence</p>
+            </div>
+          </Link>
+
+          <button
+            type="button"
+            onClick={startNewCampaign}
+            className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm font-medium text-slate-200 transition hover:border-violet-400/40 hover:bg-violet-500/10 hover:text-white"
+          >
+            <span className="text-lg leading-none">＋</span>
+            New campaign
+          </button>
+
+          <nav className="mt-5 space-y-1">
             <Link
               href="/dashboard/business-profile"
-              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-400 transition hover:bg-white/5 hover:text-white"
             >
-              Business Profile
+              <span>◈</span>
+              Business profile
             </Link>
-            <UserButton />
-          </div>
-        </div>
-
-        {usage && (
-          <details className="group mb-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 marker:hidden">
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
-                <p className="font-semibold text-slate-900">
-                  {usage.planName} plan
-                </p>
-                <p className="text-sm text-slate-500">
-                  {usage.campaignUsageCount}/
-                  {usage.campaignLimit === -1
-                    ? "Unlimited"
-                    : usage.campaignLimit}{" "}
-                  campaigns · {usage.posterUsageCount}/
-                  {usage.posterLimit === -1 ? "Unlimited" : usage.posterLimit}{" "}
-                  posters
-                </p>
-              </div>
-              <span className="shrink-0 text-sm font-medium text-indigo-600 group-open:hidden">
-                View plan &amp; usage
-              </span>
-              <span className="hidden shrink-0 text-sm font-medium text-indigo-600 group-open:inline">
-                Hide details
-              </span>
-            </summary>
-
-            <div className="grid gap-4 border-t border-slate-100 bg-slate-50/70 p-5 sm:grid-cols-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Current plan
-                </p>
-                <p className="mt-1 text-lg font-bold text-slate-900">
-                  {usage.planName}
-                </p>
-                <Link
-                  href="/pricing"
-                  className="mt-2 inline-flex text-sm font-semibold text-indigo-600 hover:text-indigo-500"
-                >
-                  View plans
-                </Link>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Campaigns this month
-                </p>
-                <p className="mt-1 text-lg font-bold text-slate-900">
-                  {usage.campaignUsageCount} /{" "}
-                  {usage.campaignLimit === -1
-                    ? "Unlimited"
-                    : usage.campaignLimit}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Posters this month
-                </p>
-                <p className="mt-1 text-lg font-bold text-slate-900">
-                  {usage.posterUsageCount} /{" "}
-                  {usage.posterLimit === -1 ? "Unlimited" : usage.posterLimit}
-                </p>
-              </div>
-            </div>
-          </details>
-        )}
-
-        {campaignLimitReached && (
-          <div className="mb-6 rounded-2xl border border-amber-300 bg-amber-50 p-5">
-            <h2 className="text-lg font-semibold text-amber-900">
-              You have reached your {usage?.planName ?? "current"} plan campaign
-              limit
-            </h2>
-            <p className="mt-2 text-sm text-amber-800">
-              Upgrade your plan to generate more campaigns this month.
-            </p>
-
-            <div className="mt-4">
-              <Link
-                href="/pricing"
-                className="inline-block rounded-xl bg-indigo-600 px-5 py-3 text-sm font-medium text-white hover:bg-indigo-500"
-              >
-                View Pricing
-              </Link>
-            </div>
-          </div>
-        )}
-
-        {usage?.plan === "free" && (
-          <div className="mb-6 rounded-2xl border border-indigo-200 bg-indigo-50 p-5">
-            <h2 className="text-lg font-semibold text-indigo-900">
-              Unlock more marketing power
-            </h2>
-
-            <p className="mt-2 text-sm text-indigo-800">
-              Upgrade your plan to generate more campaigns and posters, remove
-              the Marketa watermark, and unlock campaign templates.
-            </p>
-
             <Link
               href="/pricing"
-              className="mt-4 inline-block rounded-xl bg-indigo-600 px-5 py-3 text-sm font-medium text-white hover:bg-indigo-500"
+              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-400 transition hover:bg-white/5 hover:text-white"
             >
-              View Plans
+              <span>◇</span>
+              Plans &amp; usage
             </Link>
-          </div>
-        )}
+          </nav>
 
-        <div className="mb-8 rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-violet-50 p-6 shadow-sm">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-500">
-                Idea for {savedBusinessName || effectiveBusinessType}
+          <div className="mt-7 flex min-h-0 flex-1 flex-col border-t border-white/10 pt-5">
+            <div className="flex items-center justify-between px-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                Campaign history
               </p>
+              <span className="text-xs text-slate-600">{history.length}</span>
+            </div>
 
-              {isLoadingDailyIdea ? (
-                <>
-                  <h2 className="mt-2 text-xl font-semibold text-slate-900">
-                    Loading today&apos;s idea...
-                  </h2>
-                  <p className="mt-2 text-slate-600">
-                    Marketa AI is preparing your idea for today.
-                  </p>
-                </>
-              ) : dailyIdea ? (
-                <>
-                  <h2 className="mt-2 text-xl font-semibold text-slate-900">
-                    {dailyIdea.title}
-                  </h2>
-                  <p className="mt-3 max-w-3xl text-slate-600">
-                    {dailyIdea.idea}
-                  </p>
-                </>
+            {usage?.advancedHistoryEnabled && (
+              <form onSubmit={handleHistorySearchSubmit} className="mt-3">
+                <input
+                  type="search"
+                  value={historySearch}
+                  onChange={(event) => setHistorySearch(event.target.value)}
+                  placeholder="Search conversations"
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-white outline-none placeholder:text-slate-600 focus:border-violet-400/50"
+                />
+              </form>
+            )}
+
+            <div className="mt-3 min-h-0 space-y-1 overflow-y-auto pr-1">
+              {isLoadingHistory ? (
+                <p className="px-2 py-3 text-xs text-slate-600">Loading history...</p>
+              ) : history.length === 0 ? (
+                <p className="px-2 py-3 text-xs leading-5 text-slate-600">
+                  Your generated campaigns will appear here.
+                </p>
               ) : (
-                <>
-                  <h2 className="mt-2 text-xl font-semibold text-slate-900">
-                    No daily idea available right now
-                  </h2>
-                  <p className="mt-2 text-slate-600">
-                    Please refresh and try again.
-                  </p>
-                </>
+                history.map((item) => {
+                  const promptLabel = item.prompt.includes(":")
+                    ? item.prompt.split(":").slice(1).join(":").trim()
+                    : item.prompt;
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="group flex items-start gap-1 rounded-xl hover:bg-white/5"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => handleReuseCampaign(item)}
+                        className="min-w-0 flex-1 px-3 py-2.5 text-left"
+                      >
+                        <span className="block truncate text-sm text-slate-300">
+                          {promptLabel}
+                        </span>
+                        <span className="mt-1 block text-[11px] text-slate-600">
+                          {new Date(item.created_at).toLocaleDateString()}
+                        </span>
+                      </button>
+                      {usage?.advancedHistoryEnabled && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteHistoryItem(item.id)}
+                          disabled={isDeletingHistoryId === item.id}
+                          aria-label="Delete campaign"
+                          className="mr-2 mt-2 hidden rounded-md px-1.5 py-1 text-xs text-slate-600 transition hover:bg-red-500/10 hover:text-red-300 group-hover:block"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  );
+                })
               )}
             </div>
-
-            <div>
-              <button
-                type="button"
-                onClick={handleUseDailyIdea}
-                disabled={!dailyIdea || campaignLimitReached}
-                className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-medium text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Use This Idea
-              </button>
-            </div>
           </div>
-        </div>
 
-        <div className="space-y-8">
-          <div>
-            <div
-              id="campaign-builder"
-              className="scroll-mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8"
-            >
-              <h2 className="text-xl font-semibold text-slate-900">
-                What do you want to promote?
-              </h2>
-              <p className="mt-2 text-sm text-slate-600">
-                Describe the offer, service, product, or announcement you want
-                customers to see.
-              </p>
+          <div className="mt-4 border-t border-white/10 pt-4">
+            {usage && (
+              <div className="rounded-xl bg-white/[0.04] p-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-slate-300">
+                    {usage.planName} plan
+                  </p>
+                  <Link href="/pricing" className="text-xs text-violet-300">
+                    Manage
+                  </Link>
+                </div>
+                <p className="mt-2 text-[11px] text-slate-500">
+                  {usage.campaignUsageCount} /{" "}
+                  {usage.campaignLimit === -1 ? "∞" : usage.campaignLimit} campaigns
+                  {" · "}
+                  {usage.posterUsageCount} /{" "}
+                  {usage.posterLimit === -1 ? "∞" : usage.posterLimit} posters
+                </p>
+              </div>
+            )}
+          </div>
+        </aside>
 
-              <form onSubmit={handleGenerateCampaign} className="mt-6 space-y-4">
-                {businessProfile?.businessType ? (
-                  <div className="flex flex-col gap-3 rounded-xl border border-indigo-100 bg-indigo-50/70 p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
-                        Creating for
-                      </p>
-                      <p className="mt-1 font-semibold text-slate-900">
-                        {savedBusinessName || "Your business"} ·{" "}
-                        {effectiveBusinessType}
-                      </p>
-                    </div>
-                    <Link
-                      href="/dashboard/business-profile"
-                      className="text-sm font-semibold text-indigo-600 hover:text-indigo-500"
-                    >
-                      Edit business profile
-                    </Link>
+        <section className="min-w-0 flex-1">
+          <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 sm:px-6">
+            <header className="flex items-center justify-between border-b border-white/10 py-4 lg:py-5">
+              <div className="lg:hidden">
+                <Link href="/" className="flex items-center gap-2 font-semibold">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-cyan-400 text-sm">
+                    M
+                  </span>
+                  Marketa AI
+                </Link>
+              </div>
+
+              <div className="hidden lg:block">
+                <p className="text-sm text-slate-500">
+                  Workspace / {savedBusinessName || effectiveBusinessType}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/dashboard/business-profile"
+                  className="hidden rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-slate-300 transition hover:border-violet-400/30 hover:text-white sm:inline-flex"
+                >
+                  Brand Kit
+                </Link>
+                <UserButton />
+              </div>
+            </header>
+
+            <details className="group mt-4 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] lg:hidden">
+              <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm marker:hidden">
+                <span className="text-slate-300">History &amp; usage</span>
+                <span className="text-violet-300 group-open:rotate-45">＋</span>
+              </summary>
+              <div className="max-h-64 space-y-2 overflow-y-auto border-t border-white/10 p-3">
+                {history.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => handleReuseCampaign(item)}
+                    className="block w-full truncate rounded-lg px-3 py-2 text-left text-sm text-slate-400 hover:bg-white/5 hover:text-white"
+                  >
+                    {item.prompt.includes(":")
+                      ? item.prompt.split(":").slice(1).join(":").trim()
+                      : item.prompt}
+                  </button>
+                ))}
+              </div>
+            </details>
+
+            <div className="flex-1 py-8 sm:py-12">
+              {!result && !isGenerating && (
+                <section className="mx-auto max-w-3xl text-center">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-violet-400/30 bg-violet-500/10 text-2xl shadow-[0_0_50px_rgba(139,92,246,0.22)]">
+                    ✦
                   </div>
-                ) : (
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700">
-                      Business Type
-                    </label>
+                  <p className="mt-6 text-sm font-medium text-violet-300">
+                    Your AI marketing workspace
+                  </p>
+                  <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-5xl">
+                    Welcome, {firstName}. What are we creating?
+                  </h1>
+                  <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-slate-400">
+                    Turn one idea into a social caption, WhatsApp promotion, ad
+                    copy and branded poster—grounded in your saved business profile.
+                  </p>
 
-                    <select
-                      value={businessType}
-                      onChange={(e) => setBusinessType(e.target.value)}
-                      disabled={campaignLimitReached || isGenerating}
-                      className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 outline-none focus:border-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-100"
+                  {dailyIdea && (
+                    <button
+                      type="button"
+                      onClick={handleUseDailyIdea}
+                      disabled={campaignLimitReached}
+                      className="group mx-auto mt-8 w-full max-w-2xl rounded-2xl border border-violet-400/20 bg-gradient-to-br from-violet-500/10 to-cyan-400/5 p-5 text-left transition hover:border-violet-400/40 hover:bg-violet-500/15 disabled:opacity-50"
                     >
-                      {BUSINESS_TYPES.map((type) => (
-                        <option key={type} value={type}>
-                          {type}
-                        </option>
-                      ))}
-                    </select>
+                      <span className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-300">
+                        ✨ Idea for {savedBusinessName || effectiveBusinessType}
+                      </span>
+                      <span className="mt-2 block font-semibold text-white">
+                        {dailyIdea.title}
+                      </span>
+                      <span className="mt-2 block text-sm leading-6 text-slate-400">
+                        {dailyIdea.idea}
+                      </span>
+                      <span className="mt-4 block text-sm font-medium text-violet-300">
+                        Use this idea →
+                      </span>
+                    </button>
+                  )}
 
-                    {businessType === OTHER_BUSINESS_TYPE && (
-                      <div className="mt-3">
-                        <label className="block text-sm font-medium text-slate-700">
-                          Tell Marketa your business type
-                        </label>
+                  {!businessProfile?.businessType && (
+                    <div className="mx-auto mt-6 max-w-2xl text-left">
+                      <label className="text-xs font-medium text-slate-400">
+                        Business type
+                      </label>
+                      <select
+                        value={businessType}
+                        onChange={(event) => setBusinessType(event.target.value)}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-[#11131b] px-4 py-3 text-sm text-white outline-none focus:border-violet-400/50"
+                      >
+                        {BUSINESS_TYPES.map((type) => (
+                          <option key={type} value={type}>
+                            {type}
+                          </option>
+                        ))}
+                      </select>
+                      {businessType === OTHER_BUSINESS_TYPE && (
                         <input
                           type="text"
                           value={customBusinessType}
-                          onChange={(e) => setCustomBusinessType(e.target.value)}
-                          placeholder="Example: Car wash, bakery, photographer..."
-                          maxLength={80}
-                          disabled={campaignLimitReached || isGenerating}
-                          className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 placeholder-slate-400 outline-none focus:border-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-100"
+                          onChange={(event) =>
+                            setCustomBusinessType(event.target.value)
+                          }
+                          placeholder="Tell Marketa what type of business you run"
+                          className="mt-3 w-full rounded-xl border border-white/10 bg-[#11131b] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-violet-400/50"
+                        />
+                      )}
+                    </div>
+                  )}
+                </section>
+              )}
+
+              {isGenerating && (
+                <div className="mx-auto max-w-4xl space-y-6">
+                  <div className="ml-auto max-w-2xl rounded-3xl rounded-br-md bg-violet-600 px-5 py-4 text-sm leading-6 text-white">
+                    {prompt || generatedPrompt}
+                  </div>
+                  <div className="flex items-center gap-3 text-sm text-slate-400">
+                    <span className="ai-pulse flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/15 text-violet-300">
+                      ✦
+                    </span>
+                    Marketa is building your campaign...
+                  </div>
+                </div>
+              )}
+
+              {result && (
+                <section className="mx-auto max-w-5xl space-y-7">
+                  <div className="ml-auto max-w-2xl rounded-3xl rounded-br-md bg-gradient-to-br from-violet-600 to-indigo-600 px-5 py-4 shadow-lg shadow-violet-950/30">
+                    <p className="whitespace-pre-line text-sm leading-6 text-white">
+                      {generatedPrompt}
+                    </p>
+                    {generatedAttachmentUrl && (
+                      <div className="mt-3 overflow-hidden rounded-xl border border-white/20">
+                        <Image
+                          src={generatedAttachmentUrl}
+                          alt="Image attached to campaign prompt"
+                          width={640}
+                          height={360}
+                          unoptimized
+                          className="max-h-48 w-full object-cover"
                         />
                       </div>
                     )}
                   </div>
-                )}
 
-                {usage?.templatesEnabled && selectedTemplates.length > 0 ? (
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700">
-                      Quick Templates
-                    </label>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {selectedTemplates.map((template) => (
+                  <div className="flex gap-3">
+                    <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-500/15 text-violet-300">
+                      ✦
+                    </div>
+                    <div className="min-w-0 flex-1 rounded-3xl rounded-tl-md border border-white/10 bg-[#10121a]/90 p-5 shadow-2xl shadow-black/20 backdrop-blur-xl sm:p-7">
+                      <div className="flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-300">
+                            Campaign ready ✨
+                          </p>
+                          <h2 className="mt-2 text-xl font-semibold text-white">
+                            Four ready-to-use marketing assets
+                          </h2>
+                        </div>
                         <button
-                          key={template}
                           type="button"
-                          onClick={() => setPrompt(template)}
-                          className="rounded-full border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                          onClick={startNewCampaign}
+                          className="w-fit rounded-xl border border-white/10 px-4 py-2 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white"
                         >
-                          {template}
+                          New campaign
                         </button>
-                      ))}
+                      </div>
+
+                      <div className="mt-5 grid gap-4 md:grid-cols-2">
+                        <ResultCard
+                          title="📱 Social media caption"
+                          content={result.socialCaption}
+                          onCopy={() =>
+                            handleCopy("socialCaption", result.socialCaption)
+                          }
+                          copied={copiedField === "socialCaption"}
+                        />
+                        <ResultCard
+                          title="💬 WhatsApp promotion"
+                          content={result.whatsappPromo}
+                          onCopy={() =>
+                            handleCopy("whatsappPromo", result.whatsappPromo)
+                          }
+                          copied={copiedField === "whatsappPromo"}
+                        />
+                        <ResultCard
+                          title="🚀 Ad copy"
+                          content={result.adCopy}
+                          onCopy={() => handleCopy("adCopy", result.adCopy)}
+                          copied={copiedField === "adCopy"}
+                        />
+                        <ResultCard
+                          title="💡 Marketing tip"
+                          content={result.marketingTip}
+                          onCopy={() =>
+                            handleCopy("marketingTip", result.marketingTip)
+                          }
+                          copied={copiedField === "marketingTip"}
+                        />
+                      </div>
+
+                      <div className="mt-6 rounded-2xl border border-violet-400/20 bg-violet-500/[0.07] p-4">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="font-medium text-white">
+                              Turn this campaign into a poster?
+                            </p>
+                            <p className="mt-1 text-sm text-slate-400">
+                              Your saved logo, colours and selected image will be applied.
+                            </p>
+                          </div>
+                          {posterLimitReached ? (
+                            <Link
+                              href="/pricing"
+                              className="text-sm font-medium text-violet-300"
+                            >
+                              Upgrade poster limit →
+                            </Link>
+                          ) : (
+                            <div className="flex gap-2">
+                              <select
+                                value={posterTemplate}
+                                onChange={(event) =>
+                                  setPosterTemplate(
+                                    event.target.value as PosterTemplate
+                                  )
+                                }
+                                disabled={isGeneratingPoster}
+                                aria-label="Poster style"
+                                className="rounded-xl border border-white/10 bg-[#151722] px-3 py-2.5 text-sm text-slate-200 outline-none"
+                              >
+                                <option value="bold">Bold gradient</option>
+                                <option value="clean">Clean minimal</option>
+                                <option value="photo">Brand photo</option>
+                              </select>
+                              <button
+                                type="button"
+                                onClick={handleGeneratePoster}
+                                disabled={isGeneratingPoster}
+                                className="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-violet-500 disabled:opacity-60"
+                              >
+                                {isGeneratingPoster ? "Creating..." : "Create poster"}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        {posterError && (
+                          <p className="mt-3 text-sm text-red-300">{posterError}</p>
+                        )}
+                      </div>
+
+                      {posterUrl && (
+                        <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-4">
+                          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <p className="font-medium text-white">Poster ready 🎨</p>
+                              <p className="mt-1 text-xs text-slate-500">
+                                1080 × 1080 PNG
+                              </p>
+                            </div>
+                            <div className="flex gap-2">
+                              <a
+                                href={posterUrl}
+                                download="marketa-poster.png"
+                                className="rounded-xl bg-white px-4 py-2 text-sm font-medium text-slate-950"
+                              >
+                                Download
+                              </a>
+                              <button
+                                type="button"
+                                onClick={() => window.open(posterUrl, "_blank")}
+                                className="rounded-xl border border-white/10 px-4 py-2 text-sm text-slate-300"
+                              >
+                                Full size
+                              </button>
+                            </div>
+                          </div>
+                          <Image
+                            src={posterUrl}
+                            alt="Generated marketing poster"
+                            width={1024}
+                            height={1024}
+                            unoptimized
+                            className="mx-auto w-full max-w-xl rounded-xl border border-white/10"
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
-                ) : !usage?.templatesEnabled ? (
-                  <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
-                    <p className="text-sm text-slate-600">
-                      Quick templates are available on Starter, Growth, and Pro
-                      plans.
-                    </p>
-                    <Link
-                      href="/pricing"
-                      className="mt-3 inline-block text-sm font-medium text-slate-900 underline"
-                    >
-                      Upgrade to unlock templates
-                    </Link>
-                  </div>
-                ) : null}
-
-                <textarea
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  placeholder={
-                    campaignLimitReached
-                      ? "You have reached your monthly limit. Upgrade to continue."
-                      : "Type what you want to promote here..."
-                  }
-                  disabled={campaignLimitReached || isGenerating}
-                  className="min-h-[160px] w-full rounded-2xl border border-slate-300 px-4 py-4 text-slate-900 placeholder-slate-400 outline-none focus:border-slate-900 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
-                />
-
-                <button
-                  type="submit"
-                  disabled={isGenerating || campaignLimitReached}
-                  className="rounded-xl bg-indigo-600 px-6 py-3 font-medium text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isGenerating
-                    ? "Generating..."
-                    : campaignLimitReached
-                    ? "Monthly limit reached"
-                    : "Generate Campaign"}
-                </button>
-              </form>
-
-              {errorMessage && (
-                <p className="mt-4 text-sm text-red-600">{errorMessage}</p>
+                </section>
               )}
             </div>
 
-            {!result && !isGenerating && !campaignLimitReached && (
-              <p className="mt-5 text-center text-sm text-slate-500">
-                Your generated campaign will appear below.
-              </p>
-            )}
-
-            {isGenerating && (
-              <div className="mt-6 rounded-xl border border-indigo-100 bg-indigo-50 p-5 text-center">
-                <p className="text-indigo-700">
-                  Marketa AI is generating your campaign...
-                </p>
-              </div>
-            )}
-
-            {result && (
-              <>
-                <div className="mb-4 mt-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <h2 className="text-2xl font-bold text-slate-900">
-                      Campaign Results
-                    </h2>
-                    <p className="mt-2 text-slate-600">
-                      Copy and use these results in your marketing channels.
-                    </p>
+            <div
+              id="campaign-builder"
+              className="sticky bottom-0 z-20 pb-5 pt-3 [background:linear-gradient(180deg,transparent,#07080d_28%)]"
+            >
+              <div className="mx-auto max-w-4xl">
+                {campaignLimitReached && (
+                  <div className="mb-3 rounded-xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
+                    You have reached your monthly campaign limit.{" "}
+                    <Link href="/pricing" className="font-semibold underline">
+                      View plans
+                    </Link>
                   </div>
+                )}
 
-                  {posterLimitReached ? (
-                    <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                      You have reached your monthly poster limit.
-                      <Link
-                        href="/pricing"
-                        className="ml-2 font-semibold underline"
-                      >
-                        Upgrade to unlock
-                      </Link>
+                {errorMessage && (
+                  <div className="mb-3 rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200">
+                    {errorMessage}
+                  </div>
+                )}
+
+                <form
+                  onSubmit={handleGenerateCampaign}
+                  className="rounded-3xl border border-white/10 bg-[#12141d]/95 p-3 shadow-[0_20px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl focus-within:border-violet-400/40"
+                >
+                  {savedBusinessName && (
+                    <div className="flex items-center gap-2 px-2 pb-2 text-xs text-slate-500">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                      Creating for {savedBusinessName} · {effectiveBusinessType}
                     </div>
-                  ) : (
-                    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                      <select
-                        value={posterTemplate}
-                        onChange={(event) =>
-                          setPosterTemplate(event.target.value as PosterTemplate)
-                        }
-                        disabled={isGeneratingPoster}
-                        aria-label="Poster style"
-                        className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700"
-                      >
-                        <option value="bold">Bold Gradient</option>
-                        <option value="clean">Clean Minimal</option>
-                        <option value="photo">Brand Photo</option>
-                      </select>
+                  )}
+
+                  <textarea
+                    value={prompt}
+                    onChange={(event) => setPrompt(event.target.value)}
+                    placeholder={
+                      campaignLimitReached
+                        ? "Monthly limit reached"
+                        : "Ask Marketa to create your next campaign..."
+                    }
+                    rows={3}
+                    disabled={
+                      campaignLimitReached ||
+                      isGenerating ||
+                      isUploadingAttachment
+                    }
+                    className="max-h-48 min-h-20 w-full resize-none bg-transparent px-2 py-2 text-[15px] leading-6 text-white outline-none placeholder:text-slate-600 disabled:cursor-not-allowed"
+                  />
+
+                  {attachmentUrl && (
+                    <div className="mx-2 mb-2 flex items-center gap-3 rounded-xl border border-violet-400/20 bg-violet-500/10 p-2">
+                      <Image
+                        src={attachmentUrl}
+                        alt="Attached business image"
+                        width={44}
+                        height={44}
+                        unoptimized
+                        className="h-11 w-11 rounded-lg object-cover"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-medium text-slate-200">
+                          {attachmentName}
+                        </p>
+                        <p className="text-[11px] text-slate-500">
+                          Marketa will use this image as campaign context
+                        </p>
+                      </div>
                       <button
                         type="button"
-                        onClick={handleGeneratePoster}
-                        disabled={isGeneratingPoster || !generatedPrompt.trim()}
-                        className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-medium text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+                        onClick={() => {
+                          setAttachmentUrl("");
+                          setAttachmentName("");
+                        }}
+                        aria-label="Remove attachment"
+                        className="rounded-lg px-2 py-1 text-slate-500 hover:bg-white/5 hover:text-white"
                       >
-                        {isGeneratingPoster
-                          ? "Creating Poster..."
-                          : "Create Branded Poster"}
+                        ×
                       </button>
                     </div>
                   )}
-                </div>
 
-                <section className="grid gap-6 md:grid-cols-2">
-                  <ResultCard
-                    title="Social Media Caption"
-                    content={result.socialCaption}
-                    onCopy={() =>
-                      handleCopy("socialCaption", result.socialCaption)
-                    }
-                    copied={copiedField === "socialCaption"}
-                  />
-
-                  <ResultCard
-                    title="WhatsApp Promotion"
-                    content={result.whatsappPromo}
-                    onCopy={() =>
-                      handleCopy("whatsappPromo", result.whatsappPromo)
-                    }
-                    copied={copiedField === "whatsappPromo"}
-                  />
-
-                  <ResultCard
-                    title="Ad Copy"
-                    content={result.adCopy}
-                    onCopy={() => handleCopy("adCopy", result.adCopy)}
-                    copied={copiedField === "adCopy"}
-                  />
-
-                  <ResultCard
-                    title="Marketing Tip"
-                    content={result.marketingTip}
-                    onCopy={() =>
-                      handleCopy("marketingTip", result.marketingTip)
-                    }
-                    copied={copiedField === "marketingTip"}
-                  />
-                </section>
-
-                {posterError && (
-                  <p className="mt-6 text-sm text-red-600">{posterError}</p>
-                )}
-
-                {posterUrl && (
-                  <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                      <div>
-                        <h3 className="text-xl font-semibold text-slate-900">
-                          Poster Preview
-                        </h3>
-                        <p className="mt-2 text-sm text-slate-600">
-                          Your logo, colours and business details are already
-                          applied. Download the 1080 × 1080 PNG when ready.
-                        </p>
+                  {usage?.templatesEnabled &&
+                    selectedTemplates.length > 0 &&
+                    !prompt && (
+                      <div className="flex gap-2 overflow-x-auto px-2 pb-3">
+                        {selectedTemplates.map((template) => (
+                          <button
+                            key={template}
+                            type="button"
+                            onClick={() => setPrompt(template)}
+                            className="shrink-0 rounded-full border border-white/10 px-3 py-1.5 text-xs text-slate-400 transition hover:border-violet-400/30 hover:text-white"
+                          >
+                            {template}
+                          </button>
+                        ))}
                       </div>
+                    )}
 
-                      <div className="flex gap-3">
-                        <a
-                          href={posterUrl}
-                          download="marketa-poster.png"
-                          className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-medium text-white hover:bg-indigo-500"
-                        >
-                          Download Poster
-                        </a>
-
-                        <button
-                          type="button"
-                          onClick={() => window.open(posterUrl, "_blank")}
-                          className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                        >
-                          View Full Size
-                        </button>
-                      </div>
+                  <div className="flex items-center justify-between border-t border-white/10 px-1 pt-3">
+                    <div className="flex items-center gap-2">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        onChange={handleAttachmentUpload}
+                        className="sr-only"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={
+                          campaignLimitReached ||
+                          isGenerating ||
+                          isUploadingAttachment
+                        }
+                        title="Attach a product, service, or brand image"
+                        aria-label="Attach a product, service, or brand image"
+                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-xl text-slate-400 transition hover:border-violet-400/40 hover:text-white disabled:opacity-50"
+                      >
+                        {isUploadingAttachment ? "…" : "+"}
+                      </button>
+                      <Link
+                        href="/dashboard/business-profile"
+                        className="hidden text-xs text-slate-500 transition hover:text-violet-300 sm:inline"
+                      >
+                        Brand Kit
+                      </Link>
                     </div>
 
-                    <Image
-                      src={posterUrl}
-                      alt="Generated marketing poster"
-                      width={1024}
-                      height={1024}
-                      unoptimized
-                      className="mx-auto w-full max-w-2xl rounded-2xl border border-slate-200"
-                    />
+                    <button
+                      type="submit"
+                      disabled={
+                        isGenerating ||
+                        campaignLimitReached ||
+                        isUploadingAttachment ||
+                        !prompt.trim()
+                      }
+                      className="flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-500 px-4 text-sm font-medium text-white shadow-lg shadow-violet-950/30 transition hover:from-violet-500 hover:to-indigo-400 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {isGenerating ? "Thinking..." : "Generate"}
+                      <span aria-hidden="true">↑</span>
+                    </button>
                   </div>
-                )}
-
-                <div className="mt-8 text-center">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setResult(null);
-                      setPosterUrl(null);
-                      setPosterError("");
-                      setGeneratedPrompt("");
-                      setGeneratedBusinessType("");
-                    }}
-                    className="rounded-xl border border-slate-300 px-6 py-3 font-medium text-slate-700 hover:bg-slate-50"
-                  >
-                    Generate Another Campaign
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-
-          <details className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 marker:hidden">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-900">
-                  Your past campaigns
-                </h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  {isLoadingHistory
-                    ? "Loading your saved work..."
-                    : `${history.length} saved campaign${
-                        history.length === 1 ? "" : "s"
-                      }`}
+                </form>
+                <p className="mt-2 text-center text-[11px] text-slate-600">
+                  Marketa uses your profile and attached images to create better,
+                  brand-aware results.
                 </p>
               </div>
-              <span className="text-sm font-semibold text-indigo-600 group-open:hidden">
-                View history
-              </span>
-              <span className="hidden text-sm font-semibold text-indigo-600 group-open:inline">
-                Hide history
-              </span>
-            </summary>
-
-            <div className="border-t border-slate-100 bg-slate-50/50 p-6">
-              <p className="text-sm text-slate-600">
-                Search, reuse, or delete your saved campaigns.
-              </p>
-
-              {usage?.advancedHistoryEnabled ? (
-                <form
-                  onSubmit={handleHistorySearchSubmit}
-                  className="mt-5 flex gap-2"
-                >
-                  <input
-                    type="text"
-                    value={historySearch}
-                    onChange={(e) => setHistorySearch(e.target.value)}
-                    placeholder="Search history..."
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 outline-none focus:border-slate-900"
-                  />
-                  <button
-                    type="submit"
-                    className="rounded-xl bg-indigo-600 px-4 py-3 text-sm font-medium text-white hover:bg-indigo-500"
-                  >
-                    Search
-                  </button>
-                </form>
-              ) : (
-                <div className="mt-5 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
-                  <p className="text-sm text-slate-600">
-                    Advanced history search and delete are available on Starter,
-                    Growth, and Pro.
-                  </p>
-                  <Link
-                    href="/pricing"
-                    className="mt-3 inline-block text-sm font-medium text-slate-900 underline"
-                  >
-                    Upgrade to unlock advanced history
-                  </Link>
-                </div>
-              )}
-
-              <div className="mt-6 grid gap-4 md:grid-cols-2">
-                {isLoadingHistory ? (
-                  <p className="text-sm text-slate-500">Loading history...</p>
-                ) : history.length === 0 ? (
-                  <p className="text-sm text-slate-500">
-                    No matching campaign history yet.
-                  </p>
-                ) : (
-                  history.map((item) => {
-                    const businessLabel = item.prompt.includes(":")
-                      ? item.prompt.split(":")[0].trim()
-                      : "General";
-
-                    const promptLabel = item.prompt.includes(":")
-                      ? item.prompt.split(":").slice(1).join(":").trim()
-                      : item.prompt;
-
-                    return (
-                      <div
-                        key={item.id}
-                        className="rounded-2xl border border-slate-200 p-4"
-                      >
-                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                          {businessLabel}
-                        </p>
-
-                        <p className="mt-2 line-clamp-2 text-sm font-medium text-slate-900">
-                          {promptLabel}
-                        </p>
-
-                        <p className="mt-2 text-xs text-slate-500">
-                          {new Date(item.created_at).toLocaleString()}
-                        </p>
-
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleReuseCampaign(item)}
-                            className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                          >
-                            View Campaign
-                          </button>
-
-                          {usage?.advancedHistoryEnabled && (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleCopy("historyPrompt", item.prompt)
-                                }
-                                className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                              >
-                                Copy Prompt
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteHistoryItem(item.id)}
-                                disabled={isDeletingHistoryId === item.id}
-                                className="rounded-lg border border-red-300 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
-                              >
-                                {isDeletingHistoryId === item.id
-                                  ? "Deleting..."
-                                  : "Delete"}
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
             </div>
-          </details>
-        </div>
+          </div>
+        </section>
       </div>
     </main>
   );

@@ -13,19 +13,19 @@ export default function WhoItsFor() {
   return (
     <section
       id="who-its-for"
-      className="bg-gradient-to-br from-slate-50 to-violet-50 py-20"
+      className="border-b border-white/5 bg-[#07080d] py-24"
     >
       <div className="mx-auto max-w-7xl px-6">
         <div className="mb-12 text-center">
-          <p className="inline-block rounded-full bg-white px-3 py-1 text-sm font-medium text-slate-700 shadow-sm">
+          <p className="inline-block rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-sm font-medium text-cyan-200">
             Who it&apos;s for
           </p>
 
-          <h2 className="mt-4 text-3xl font-bold text-slate-900 md:text-4xl">
+          <h2 className="mt-4 text-3xl font-semibold text-white md:text-5xl">
             Built for businesses that do their own marketing
           </h2>
 
-          <p className="mx-auto mt-4 max-w-3xl text-slate-600">
+          <p className="mx-auto mt-4 max-w-3xl text-slate-400">
             Marketa AI is for business owners who need fast, professional
             marketing content without hiring a full marketing team.
           </p>
@@ -35,7 +35,7 @@ export default function WhoItsFor() {
           {audiences.map((item) => (
             <div
               key={item}
-              className="rounded-2xl border border-white/70 bg-white/80 p-5 text-center font-medium text-slate-800 shadow-sm backdrop-blur"
+              className="rounded-2xl border border-white/10 bg-white/[0.035] p-5 text-center font-medium text-slate-300 backdrop-blur transition hover:border-cyan-400/30 hover:bg-cyan-400/[0.05] hover:text-white"
             >
               {item}
             </div>
