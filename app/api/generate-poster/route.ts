@@ -34,6 +34,10 @@ function cleanHeadlineCandidate(value: string) {
   return `${firstSentence.charAt(0).toUpperCase()}${firstSentence.slice(1)}`;
 }
 
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function getHeadline(adCopy: string, prompt: string) {
   const adHeadline = adCopy
     .split(/\n+/)
@@ -50,19 +54,22 @@ function getSupportingText(
   headline: string
 ) {
   const source = socialCaption || whatsappPromo;
-  const withoutGreeting = source.replace(
+  const withoutHashtags = source.replace(
+    /(?:^|\s)#[\p{L}\p{N}_-]+/gu,
+    " "
+  );
+  const withoutGreeting = withoutHashtags.replace(
     /^(?:hi|hello|hey)(?:\s+there)?[!,.:\s-]+/i,
     ""
   );
   const withoutHeadline = withoutGreeting
-    .replace(headline, "")
-    .replace(/^[!,.:\s-]+/, "");
+    .replace(new RegExp(escapeRegExp(headline), "i"), "")
+    .replace(/^promote\s+(?:(?:my|our|a|an|the)\s+)?/i, "")
+    .replace(/^[!,.\s:-]+/, "")
+    .replace(/\bWhatApp\b/gi, "WhatsApp");
 
   return (
-    cleanText(
-      withoutHeadline.replace(/(?:^|\s)#[\p{L}\p{N}_-]+/gu, ""),
-      190
-    ) ||
+    cleanText(withoutHeadline, 190) ||
     "Discover our latest offer and get in touch today."
   );
 }
@@ -109,8 +116,12 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     const prompt = cleanText(body.prompt, 500);
-    const socialCaption = cleanText(body.socialCaption, 2_000);
-    const whatsappPromo = cleanText(body.whatsappPromo, 2_000);
+    const socialCaption = String(body.socialCaption ?? "")
+      .trim()
+      .slice(0, 2_000);
+    const whatsappPromo = String(body.whatsappPromo ?? "")
+      .trim()
+      .slice(0, 2_000);
     const adCopy = String(body.adCopy ?? "").trim().slice(0, 2_000);
 
     if (!prompt) {
