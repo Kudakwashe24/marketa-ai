@@ -13,7 +13,7 @@ export default function PricingPage() {
 
         <section className="border-b border-white/5 bg-[#090a10] px-4 pb-16 sm:px-6 sm:pb-24">
           <div className="mx-auto max-w-7xl rounded-3xl border border-white/10 bg-white/[0.035] p-5 sm:p-8">
-            <p className="text-sm font-medium text-violet-300">Choose confidently</p>
+            <p className="text-sm font-medium text-cyan-300">Choose confidently</p>
             <h2 className="mt-2 text-2xl font-semibold text-white">
               Every plan is built around features that exist today
             </h2>
@@ -50,7 +50,7 @@ export default function PricingPage() {
 
             <Link
               href="/signup"
-              className="mt-8 inline-flex rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-violet-100"
+              className="mt-8 inline-flex rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-5 py-3 text-sm font-semibold text-white hover:from-blue-500 hover:to-cyan-400"
             >
               Start with Free →
             </Link>

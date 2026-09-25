@@ -4,217 +4,108 @@ const plans = [
   {
     name: "Free",
     price: "$0",
-    period: "/mo",
-    description: "Best for trying Marketa AI and testing the core experience.",
-    highlight: "5 campaigns / month",
-    featured: false,
-    features: [
-      "Social media captions",
-      "WhatsApp promotions",
-      "Ad copy",
-      "Marketing tips",
-      "Daily marketing ideas",
-      "Basic campaign history",
-      "3 branded posters / month",
-      "Upload images for campaign context",
-    ],
-    limitations: [
-      "Small Marketa watermark on posters",
-      "No templates",
-      "No advanced history tools",
-    ],
-    buttonText: "Start Free",
+    description: "Explore Marketa and create your first branded campaigns.",
+    usage: "5 campaigns · 3 posters",
+    features: ["Core campaign copy", "Image context", "Basic history", "Watermarked posters"],
+    buttonText: "Start free",
   },
   {
     name: "Starter",
     price: "$9",
-    period: "/mo",
-    description: "Great for small businesses posting regularly every week.",
-    highlight: "30 campaigns / month",
-    featured: false,
-    features: [
-      "20 branded posters / month",
-      "Business-type templates",
-      "Search campaign history",
-      "Delete campaign history",
-      "No poster watermark",
-      "Image-aware campaigns",
-      "Daily marketing ideas",
-    ],
-    limitations: [],
+    description: "For small businesses marketing consistently each week.",
+    usage: "30 campaigns · 20 posters",
+    features: ["Everything in Free", "Campaign templates", "Searchable history", "No poster watermark"],
     buttonText: "Choose Starter",
   },
   {
     name: "Growth",
     price: "$19",
-    period: "/mo",
-    description: "Perfect for businesses actively running promotions.",
-    highlight: "200 campaigns / month",
-    featured: true,
-    badge: "Best Value",
-    features: [
-      "100 posters / month",
-      "Business-type templates",
-      "Advanced history tools",
-      "Search and delete history",
-      "No poster watermark",
-      "Image-aware campaigns",
-      "Personalized daily ideas",
-    ],
-    limitations: [],
+    description: "For active businesses running frequent promotions.",
+    usage: "200 campaigns · 100 posters",
+    features: ["Everything in Starter", "Personalized daily ideas", "Advanced history tools", "Priority creative capacity"],
     buttonText: "Choose Growth",
+    featured: true,
   },
   {
     name: "Pro",
     price: "$39",
-    period: "/mo",
-    description: "Best for agencies, power users, and heavy marketing usage.",
-    highlight: "Unlimited campaigns",
-    featured: false,
-    features: [
-      "Unlimited posters",
-      "Business-type templates",
-      "Advanced history tools",
-      "Search and delete history",
-      "No poster watermark",
-      "Image-aware campaigns",
-      "Personalized daily ideas",
-    ],
-    limitations: [],
+    description: "For agencies and teams producing at high volume.",
+    usage: "Unlimited campaigns & posters",
+    features: ["Everything in Growth", "Unlimited generation", "Full brand toolkit", "Built for heavy usage"],
     buttonText: "Choose Pro",
   },
 ];
 
 export default function Pricing() {
   return (
-    <section id="pricing" className="border-b border-white/5 bg-[#07080d] py-16 sm:py-24">
+    <section id="pricing" className="border-b border-white/5 bg-[#070a10] py-16 sm:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="text-center">
-          <p className="inline-block rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm font-medium text-slate-300">
-            Pricing
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="inline-block rounded-full border border-cyan-300/15 bg-cyan-400/5 px-3 py-1 text-sm font-medium text-cyan-200">
+            Plans
           </p>
-
-          <h2 className="mt-4 text-3xl font-semibold text-white md:text-5xl">
-            Simple plans for different stages of growth
+          <h2 className="mt-4 text-3xl font-semibold tracking-tight text-white md:text-5xl">
+            Start free. Scale when your marketing does.
           </h2>
-
           <p className="mx-auto mt-4 max-w-2xl text-slate-400">
-            Start free, then unlock more campaigns, posters, templates, and
-            advanced tools as your business grows.
+            Every plan includes brand-aware campaign copy. Upgrade for more
+            creative capacity, posters and history tools.
           </p>
         </div>
 
-        <div className="mt-10 grid gap-5 sm:mt-14 sm:gap-6 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-12 grid gap-px overflow-hidden rounded-3xl border border-white/10 bg-white/10 md:grid-cols-2 xl:grid-cols-4">
           {plans.map((plan) => (
-            <div
+            <article
               key={plan.name}
-              className={`ai-card-lift group relative flex h-full flex-col rounded-3xl border p-6 shadow-sm sm:p-8 ${
+              className={`group relative flex min-h-[32rem] flex-col p-6 transition duration-300 hover:bg-[#111a26] sm:p-7 ${
                 plan.featured
-                  ? "border-violet-400/40 bg-gradient-to-b from-violet-600/20 to-[#10121a] text-white shadow-2xl shadow-violet-950/30"
-                  : "border-white/10 bg-white/[0.035] text-white"
+                  ? "bg-gradient-to-b from-[#102b46] via-[#0c1a28] to-[#0b1019]"
+                  : "bg-[#0b1019]"
               }`}
             >
-              <span className="pointer-events-none absolute right-5 top-5 h-2 w-2 rounded-full bg-violet-300/30 opacity-0 shadow-[0_0_20px_rgba(196,181,253,0.9)] transition group-hover:opacity-100" />
-              {plan.badge && (
-                <div className="absolute -top-3 left-6 rounded-full bg-amber-400 px-3 py-1 text-xs font-bold text-slate-900">
-                  {plan.badge}
-                </div>
-              )}
+              {plan.featured ? (
+                <span className="absolute right-5 top-5 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 px-3 py-1 text-[11px] font-semibold text-white">
+                  Most popular
+                </span>
+              ) : null}
 
-              <div>
-                <h3 className="text-2xl font-bold">{plan.name}</h3>
+              <p className="text-lg font-semibold text-white">{plan.name}</p>
+              <div className="mt-6 flex items-end gap-1">
+                <span className="text-5xl font-semibold tracking-tight text-white">{plan.price}</span>
+                <span className="pb-1.5 text-sm text-slate-500">/ month</span>
+              </div>
+              <p className="mt-5 min-h-12 text-sm leading-6 text-slate-400">{plan.description}</p>
 
-                <div className="mt-4 flex items-end gap-1">
-                  <span className="text-4xl font-semibold sm:text-5xl">{plan.price}</span>
-                  <span
-                    className={`pb-1 text-sm ${
-                      plan.featured ? "text-violet-200" : "text-slate-500"
-                    }`}
-                  >
-                    {plan.period}
-                  </span>
-                </div>
-
-                <p
-                  className={`mt-4 text-sm leading-6 ${
-                    plan.featured ? "text-slate-300" : "text-slate-400"
-                  }`}
-                >
-                  {plan.description}
-                </p>
-
-                <div
-                  className={`mt-6 rounded-2xl px-4 py-3 text-center text-sm font-semibold ${
-                    plan.featured
-                      ? "bg-violet-500/20 text-violet-100"
-                      : "bg-white/5 text-slate-200"
-                  }`}
-                >
-                  {plan.highlight}
-                </div>
+              <div className="mt-6 rounded-xl border border-cyan-300/10 bg-cyan-300/[0.045] px-3 py-3 text-sm font-medium text-cyan-100">
+                {plan.usage}
               </div>
 
-              <div className="mt-8 flex-1">
-                <p
-                  className={`text-sm font-semibold ${
-                    plan.featured ? "text-white" : "text-slate-200"
-                  }`}
-                >
-                  Included
-                </p>
-
-                <ul
-                  className={`mt-4 space-y-3 text-sm ${
-                    plan.featured ? "text-slate-200" : "text-slate-400"
-                  }`}
-                >
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex gap-2">
-                      <span>✓</span>
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                {plan.limitations.length > 0 && (
-                  <>
-                    <p
-                      className={`mt-8 text-sm font-semibold ${
-                        plan.featured ? "text-white" : "text-slate-200"
-                      }`}
-                    >
-                      Not included
-                    </p>
-
-                    <ul
-                      className={`mt-4 space-y-3 text-sm ${
-                        plan.featured ? "text-slate-400" : "text-slate-500"
-                      }`}
-                    >
-                      {plan.limitations.map((item) => (
-                        <li key={item} className="flex gap-2">
-                          <span>—</span>
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-              </div>
+              <ul className="mt-7 flex-1 space-y-3 text-sm text-slate-300">
+                {plan.features.map((feature) => (
+                  <li key={feature} className="flex gap-2.5">
+                    <span className="text-cyan-300">✓</span>
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
 
               <Link
                 href="/signup"
-                className={`mt-8 inline-block w-full rounded-xl px-6 py-3 text-center font-medium transition duration-300 group-hover:scale-[1.02] ${
+                className={`mt-8 inline-flex w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition group-hover:scale-[1.015] ${
                   plan.featured
-                    ? "bg-white text-slate-950 hover:bg-violet-100"
-                    : "border border-white/10 bg-white/5 text-white hover:border-violet-400/30 hover:bg-violet-500/10"
+                    ? "bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-lg shadow-blue-950/40 hover:from-blue-500 hover:to-cyan-400"
+                    : "border border-white/10 bg-white/[0.04] text-white hover:border-cyan-300/25 hover:bg-cyan-300/[0.06]"
                 }`}
               >
                 {plan.buttonText}
               </Link>
-            </div>
+            </article>
           ))}
         </div>
+
+        <p className="mt-5 text-center text-xs text-slate-600">
+          Monthly usage resets automatically. Start free and upgrade when you need more capacity.
+        </p>
       </div>
     </section>
   );

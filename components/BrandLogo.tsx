@@ -16,7 +16,7 @@ export default function BrandLogo({
 }: BrandLogoProps) {
   return (
     <span
-      className={`relative inline-flex shrink-0 overflow-hidden bg-white shadow-lg shadow-violet-950/40 ${sizes[size]} ${className}`}
+      className={`relative inline-flex shrink-0 overflow-hidden bg-white shadow-lg shadow-blue-950/40 ring-1 ring-cyan-300/15 ${sizes[size]} ${className}`}
       aria-hidden="true"
     >
       <Image

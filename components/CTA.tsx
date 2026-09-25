@@ -3,8 +3,8 @@ import Link from "next/link";
 export default function CTA() {
   return (
     <section className="bg-[#090a10] px-4 py-16 sm:px-6 sm:py-24">
-      <div className="relative mx-auto max-w-7xl overflow-hidden rounded-[2rem] border border-violet-400/20 bg-gradient-to-r from-[#11131d] via-violet-950 to-[#11131d] px-5 py-12 text-white shadow-2xl shadow-black/40 sm:px-8 sm:py-16">
-        <div className="pointer-events-none absolute left-1/2 top-[-12rem] h-80 w-80 -translate-x-1/2 rounded-full bg-violet-500/25 blur-[100px]" />
+      <div className="relative mx-auto max-w-7xl overflow-hidden rounded-[2rem] border border-cyan-400/20 bg-gradient-to-r from-[#0b111b] via-blue-950 to-[#09131b] px-5 py-12 text-white shadow-2xl shadow-black/40 sm:px-8 sm:py-16">
+        <div className="pointer-events-none absolute left-1/2 top-[-12rem] h-80 w-80 -translate-x-1/2 rounded-full bg-cyan-500/20 blur-[100px]" />
         <div className="mx-auto max-w-3xl text-center">
           <p className="relative inline-block rounded-full bg-white/10 px-3 py-1 text-sm font-medium text-white/90">
             Ready to grow?

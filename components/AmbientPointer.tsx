@@ -72,7 +72,7 @@ export default function AmbientPointer() {
       context.lineTo(toX, toY);
       context.strokeStyle = cyan
         ? `rgba(34, 211, 238, ${opacity})`
-        : `rgba(139, 92, 246, ${opacity})`;
+        : `rgba(59, 130, 246, ${opacity})`;
       context.lineWidth = 0.75;
       context.stroke();
     };
@@ -128,7 +128,7 @@ export default function AmbientPointer() {
         context.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
         context.fillStyle = particle.cyan
           ? "rgba(103, 232, 249, 0.34)"
-          : "rgba(196, 181, 253, 0.38)";
+          : "rgba(125, 211, 252, 0.38)";
         context.fill();
       });
 
@@ -189,12 +189,12 @@ export default function AmbientPointer() {
       <div
         ref={glowRef}
         aria-hidden="true"
-        className="pointer-events-none fixed left-0 top-0 z-[3] hidden h-80 w-80 rounded-full bg-violet-500/10 blur-[90px] will-change-transform md:block"
+        className="pointer-events-none fixed left-0 top-0 z-[3] hidden h-80 w-80 rounded-full bg-cyan-500/10 blur-[90px] will-change-transform md:block"
       />
       <div
         ref={cursorRef}
         aria-hidden="true"
-        className="pointer-events-none fixed left-0 top-0 z-[60] hidden h-3 w-3 rounded-full border border-violet-200/80 bg-violet-400/50 opacity-0 shadow-[0_0_18px_rgba(139,92,246,0.9)] transition-opacity md:block"
+        className="pointer-events-none fixed left-0 top-0 z-[60] hidden h-3 w-3 rounded-full border border-cyan-200/80 bg-cyan-400/50 opacity-0 shadow-[0_0_18px_rgba(34,211,238,0.9)] transition-opacity md:block"
       />
 
       <button
@@ -202,7 +202,7 @@ export default function AmbientPointer() {
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
         aria-label="Back to top"
         data-tooltip="Back to top"
-        className={`ai-tooltip fixed bottom-6 right-6 z-50 flex h-11 w-11 items-center justify-center rounded-full border border-violet-300/25 bg-[#11131b]/90 text-violet-200 shadow-[0_10px_40px_rgba(76,29,149,0.35)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:scale-110 hover:border-violet-300/60 hover:text-white ${
+        className={`ai-tooltip fixed bottom-6 right-6 z-50 flex h-11 w-11 items-center justify-center rounded-full border border-cyan-300/25 bg-[#0d1520]/90 text-cyan-200 shadow-[0_10px_40px_rgba(8,145,178,0.28)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:scale-110 hover:border-cyan-300/60 hover:text-white ${
           showBackToTop
             ? "translate-y-0 opacity-100"
             : "pointer-events-none translate-y-4 opacity-0"
