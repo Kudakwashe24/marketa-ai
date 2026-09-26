@@ -1,10 +1,29 @@
 export type PlanKey = "free" | "starter" | "growth" | "pro";
 
+export const PLAN_KEYS: PlanKey[] = ["free", "starter", "growth", "pro"];
+
+export const PLAN_MONTHLY_PRICES: Record<PlanKey, number> = {
+  free: 0,
+  starter: 9,
+  growth: 19,
+  pro: 39,
+};
+
+export function isPlanKey(value: unknown): value is PlanKey {
+  return typeof value === "string" && PLAN_KEYS.includes(value as PlanKey);
+}
+
+export function normalizePlanKey(value: unknown): PlanKey {
+  if (typeof value !== "string") return "free";
+
+  const normalizedValue = value.toLowerCase();
+  return isPlanKey(normalizedValue) ? normalizedValue : "free";
+}
+
 export type PlanConfig = {
   name: string;
   campaignLimit: number;
   posterLimit: number;
-  personalizedDailyIdea: boolean;
   templatesEnabled: boolean;
   advancedHistoryEnabled: boolean;
 };
@@ -14,7 +33,6 @@ export const PLAN_CONFIGS: Record<PlanKey, PlanConfig> = {
     name: "Free",
     campaignLimit: 5,
     posterLimit: 3,
-    personalizedDailyIdea: false,
     templatesEnabled: false,
     advancedHistoryEnabled: false,
   },
@@ -22,7 +40,6 @@ export const PLAN_CONFIGS: Record<PlanKey, PlanConfig> = {
     name: "Starter",
     campaignLimit: 30,
     posterLimit: 20,
-    personalizedDailyIdea: false,
     templatesEnabled: true,
     advancedHistoryEnabled: true,
   },
@@ -30,7 +47,6 @@ export const PLAN_CONFIGS: Record<PlanKey, PlanConfig> = {
     name: "Growth",
     campaignLimit: 200,
     posterLimit: 100,
-    personalizedDailyIdea: true,
     templatesEnabled: true,
     advancedHistoryEnabled: true,
   },
@@ -38,7 +54,6 @@ export const PLAN_CONFIGS: Record<PlanKey, PlanConfig> = {
     name: "Pro",
     campaignLimit: -1,
     posterLimit: -1,
-    personalizedDailyIdea: true,
     templatesEnabled: true,
     advancedHistoryEnabled: true,
   },

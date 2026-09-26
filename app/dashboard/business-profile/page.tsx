@@ -220,11 +220,11 @@ export default function BusinessProfilePage() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#07080d] px-4 py-8 text-white sm:px-6 sm:py-10">
       <div className="pointer-events-none fixed inset-0 ai-grid opacity-30" />
-      <div className="pointer-events-none fixed left-1/2 top-[-22rem] h-[42rem] w-[42rem] -translate-x-1/2 rounded-full bg-violet-600/15 blur-[140px]" />
+      <div className="pointer-events-none fixed left-1/2 top-[-22rem] h-[42rem] w-[42rem] -translate-x-1/2 rounded-full bg-cyan-600/15 blur-[140px]" />
       <div className="relative mx-auto max-w-5xl">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm font-medium text-violet-300">Brand Kit</p>
+            <p className="text-sm font-medium text-cyan-300">Brand Kit</p>
             <h1 className="mt-1 text-3xl font-semibold text-white">
               Your Business Profile
             </h1>
@@ -236,7 +236,7 @@ export default function BusinessProfilePage() {
 
           <Link
             href="/dashboard"
-            className="w-fit rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-slate-300 hover:border-violet-400/30 hover:text-white"
+            className="w-fit rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-slate-300 hover:border-cyan-400/30 hover:text-white"
           >
             Back to Dashboard
           </Link>
@@ -457,7 +457,7 @@ export default function BusinessProfilePage() {
                 )}
 
                 <div className="mt-4 flex flex-wrap gap-3">
-                  <label className="inline-block cursor-pointer rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500">
+                  <label className="inline-block cursor-pointer rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-4 py-2 text-sm font-medium text-white hover:from-blue-500 hover:to-cyan-400">
                     {uploadingAsset === "logo" ? "Uploading..." : "Upload Logo"}
                     <input
                       type="file"
@@ -518,7 +518,7 @@ export default function BusinessProfilePage() {
                   </div>
                 )}
 
-                <label className="mt-4 inline-block cursor-pointer rounded-xl border border-white/10 px-4 py-2 text-sm font-medium text-slate-300 hover:border-violet-400/30 hover:text-white">
+                <label className="mt-4 inline-block cursor-pointer rounded-xl border border-white/10 px-4 py-2 text-sm font-medium text-slate-300 hover:border-cyan-400/30 hover:text-white">
                   {uploadingAsset === "photo" ? "Uploading..." : "Add Photo"}
                   <input
                     type="file"
@@ -538,7 +538,7 @@ export default function BusinessProfilePage() {
               disabled={
                 isSaving || uploadingAsset !== null || removingAsset !== null
               }
-              className="w-full rounded-xl bg-violet-600 px-6 py-3 font-medium text-white hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+              className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-6 py-3 font-medium text-white hover:from-blue-500 hover:to-cyan-400 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
             >
               {isSaving ? "Saving..." : "Save Business Profile"}
             </button>

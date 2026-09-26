@@ -119,22 +119,47 @@ function ResultCard({
   onCopy,
   copied,
 }: ResultCardProps) {
+  const [visibleContent, setVisibleContent] = useState("");
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      const reducedMotionTimer = window.setTimeout(
+        () => setVisibleContent(content),
+        0
+      );
+      return () => window.clearTimeout(reducedMotionTimer);
+    }
+
+    let position = 0;
+    const chunkSize = Math.max(1, Math.ceil(content.length / 90));
+    const timer = window.setInterval(() => {
+      position = Math.min(content.length, position + chunkSize);
+      setVisibleContent(content.slice(0, position));
+      if (position >= content.length) window.clearInterval(timer);
+    }, 18);
+
+    return () => window.clearInterval(timer);
+  }, [content]);
+
   return (
-    <div className="group rounded-2xl border border-white/10 bg-white/[0.035] p-4 transition hover:border-violet-400/30 hover:bg-white/[0.055] sm:p-5">
+    <div className="group rounded-2xl border border-white/10 bg-white/[0.035] p-4 transition hover:border-cyan-400/30 hover:bg-white/[0.055] sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <h3 className="text-sm font-semibold text-white">{title}</h3>
 
         <button
           type="button"
           onClick={onCopy}
-          className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-slate-300 transition hover:border-violet-400/40 hover:text-white"
+          className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-slate-300 transition hover:border-cyan-400/40 hover:text-white"
         >
           {copied ? "Copied!" : "Copy"}
         </button>
       </div>
 
       <p className="mt-3 whitespace-pre-line text-sm leading-7 text-slate-300">
-        {content}
+        {visibleContent}
+        {visibleContent.length < content.length ? (
+          <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-cyan-300 align-middle" />
+        ) : null}
       </p>
     </div>
   );
@@ -172,6 +197,7 @@ export default function DashboardPage() {
   const [generatedAttachmentUrl, setGeneratedAttachmentUrl] = useState("");
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const conversationEndRef = useRef<HTMLDivElement>(null);
 
   const effectiveBusinessType = getEffectiveBusinessType(
     businessType,
@@ -265,6 +291,13 @@ export default function DashboardPage() {
     fetchBusinessProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    conversationEndRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "end",
+    });
+  }, [isGenerating, result, posterUrl]);
 
   const handleGenerateCampaign = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -435,11 +468,6 @@ export default function DashboardPage() {
     setResult(null);
     setPosterUrl(null);
     setPosterError("");
-    window.requestAnimationFrame(() => {
-      document
-        .getElementById("campaign-builder")
-        ?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
   };
 
   const handleAttachmentUpload = async (
@@ -542,12 +570,12 @@ export default function DashboardPage() {
   const savedBusinessName = businessProfile?.businessName?.trim();
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#07080d] text-white">
+    <main className="relative h-dvh overflow-hidden bg-[#070a10] text-white">
       <div className="pointer-events-none fixed inset-0 ai-grid opacity-30" />
-      <div className="pointer-events-none fixed left-[18%] top-[-18rem] h-[38rem] w-[38rem] rounded-full bg-violet-600/15 blur-[140px]" />
+      <div className="pointer-events-none fixed left-[18%] top-[-18rem] h-[38rem] w-[38rem] rounded-full bg-blue-600/15 blur-[140px]" />
       <div className="pointer-events-none fixed bottom-[-18rem] right-[-8rem] h-[34rem] w-[34rem] rounded-full bg-cyan-500/10 blur-[140px]" />
 
-      <div className="relative flex min-h-screen">
+      <div className="relative flex h-full min-h-0">
         <aside className="sticky top-0 hidden h-screen w-[19rem] shrink-0 flex-col border-r border-white/10 bg-black/20 px-4 py-5 backdrop-blur-xl lg:flex">
           <Link href="/" className="flex items-center gap-3 px-2">
             <BrandLogo size="medium" />
@@ -560,13 +588,21 @@ export default function DashboardPage() {
           <button
             type="button"
             onClick={startNewCampaign}
-            className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm font-medium text-slate-200 transition hover:border-violet-400/40 hover:bg-violet-500/10 hover:text-white"
+            className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-4 py-3 text-sm font-medium text-white shadow-lg shadow-blue-950/30 transition hover:from-blue-500 hover:to-cyan-400"
           >
             <span className="text-lg leading-none">＋</span>
             New campaign
           </button>
 
           <nav className="mt-5 space-y-1">
+            <button
+              type="button"
+              onClick={startNewCampaign}
+              className="flex w-full items-center gap-3 rounded-xl bg-cyan-400/[0.08] px-3 py-2.5 text-left text-sm text-cyan-100"
+            >
+              <span>⌂</span>
+              Campaign studio
+            </button>
             <Link
               href="/dashboard/business-profile"
               className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-400 transition hover:bg-white/5 hover:text-white"
@@ -598,7 +634,7 @@ export default function DashboardPage() {
                   value={historySearch}
                   onChange={(event) => setHistorySearch(event.target.value)}
                   placeholder="Search conversations"
-                  className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-white outline-none placeholder:text-slate-600 focus:border-violet-400/50"
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-white outline-none placeholder:text-slate-600 focus:border-cyan-400/50"
                 />
               </form>
             )}
@@ -658,7 +694,7 @@ export default function DashboardPage() {
                   <p className="text-xs font-medium text-slate-300">
                     {usage.planName} plan
                   </p>
-                  <Link href="/pricing" className="text-xs text-violet-300">
+                  <Link href="/pricing" className="text-xs text-cyan-300">
                     Manage
                   </Link>
                 </div>
@@ -671,12 +707,23 @@ export default function DashboardPage() {
                 </p>
               </div>
             )}
+            <div className="mt-3 flex items-center gap-3 rounded-xl px-2 py-2 transition hover:bg-white/[0.04]">
+              <UserButton />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-slate-200">
+                  {user?.fullName || user?.username || "Your account"}
+                </p>
+                <p className="truncate text-[11px] text-slate-600">
+                  {user?.primaryEmailAddress?.emailAddress || "Manage account"}
+                </p>
+              </div>
+            </div>
           </div>
         </aside>
 
-        <section className="min-w-0 flex-1">
-          <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 sm:px-6">
-            <header className="flex items-center justify-between border-b border-white/10 py-4 lg:py-5">
+        <section className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
+          <div className="mx-auto flex h-full min-h-0 w-full max-w-6xl flex-col px-4 sm:px-6">
+            <header className="flex shrink-0 items-center justify-between border-b border-white/10 py-4 lg:py-5">
               <div className="lg:hidden">
                 <Link href="/" className="flex items-center gap-2 font-semibold">
                   <BrandLogo />
@@ -693,18 +740,20 @@ export default function DashboardPage() {
               <div className="flex items-center gap-3">
                 <Link
                   href="/dashboard/business-profile"
-                  className="hidden rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-slate-300 transition hover:border-violet-400/30 hover:text-white sm:inline-flex"
+                  className="hidden rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-slate-300 transition hover:border-cyan-400/30 hover:text-white sm:inline-flex"
                 >
                   Brand Kit
                 </Link>
-                <UserButton />
+                <div className="lg:hidden">
+                  <UserButton />
+                </div>
               </div>
             </header>
 
-            <details className="group mt-4 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] lg:hidden">
+            <details className="group mt-3 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] lg:hidden">
               <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm marker:hidden">
                 <span className="text-slate-300">History &amp; usage</span>
-                <span className="text-violet-300 group-open:rotate-45">＋</span>
+                <span className="text-cyan-300 group-open:rotate-45">＋</span>
               </summary>
               <div className="max-h-64 space-y-2 overflow-y-auto border-t border-white/10 p-3">
                 {history.map((item) => (
@@ -722,13 +771,13 @@ export default function DashboardPage() {
               </div>
             </details>
 
-            <div className="flex-1 py-8 sm:py-12">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-6 pr-1 sm:py-8">
               {!result && !isGenerating && (
                 <section className="mx-auto max-w-3xl text-center">
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-violet-400/30 bg-violet-500/10 text-2xl shadow-[0_0_50px_rgba(139,92,246,0.22)]">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-400/30 bg-cyan-500/10 text-2xl shadow-[0_0_50px_rgba(34,211,238,0.18)]">
                     ✦
                   </div>
-                  <p className="mt-6 text-sm font-medium text-violet-300">
+                  <p className="mt-6 text-sm font-medium text-cyan-300">
                     Your AI marketing workspace
                   </p>
                   <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-5xl">
@@ -744,9 +793,9 @@ export default function DashboardPage() {
                       type="button"
                       onClick={handleUseDailyIdea}
                       disabled={campaignLimitReached}
-                      className="group mx-auto mt-8 w-full max-w-2xl rounded-2xl border border-violet-400/20 bg-gradient-to-br from-violet-500/10 to-cyan-400/5 p-5 text-left transition hover:border-violet-400/40 hover:bg-violet-500/15 disabled:opacity-50"
+                      className="group mx-auto mt-8 w-full max-w-2xl rounded-2xl border border-cyan-400/20 bg-gradient-to-br from-blue-500/10 to-cyan-400/5 p-5 text-left transition hover:border-cyan-400/40 hover:bg-cyan-500/10 disabled:opacity-50"
                     >
-                      <span className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-300">
+                      <span className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-300">
                         ✨ Idea for {savedBusinessName || effectiveBusinessType}
                       </span>
                       <span className="mt-2 block font-semibold text-white">
@@ -755,7 +804,7 @@ export default function DashboardPage() {
                       <span className="mt-2 block text-sm leading-6 text-slate-400">
                         {dailyIdea.idea}
                       </span>
-                      <span className="mt-4 block text-sm font-medium text-violet-300">
+                      <span className="mt-4 block text-sm font-medium text-cyan-300">
                         Use this idea →
                       </span>
                     </button>
@@ -769,7 +818,7 @@ export default function DashboardPage() {
                       <select
                         value={businessType}
                         onChange={(event) => setBusinessType(event.target.value)}
-                        className="mt-2 w-full rounded-xl border border-white/10 bg-[#11131b] px-4 py-3 text-sm text-white outline-none focus:border-violet-400/50"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-[#11131b] px-4 py-3 text-sm text-white outline-none focus:border-cyan-400/50"
                       >
                         {BUSINESS_TYPES.map((type) => (
                           <option key={type} value={type}>
@@ -785,7 +834,7 @@ export default function DashboardPage() {
                             setCustomBusinessType(event.target.value)
                           }
                           placeholder="Tell Marketa what type of business you run"
-                          className="mt-3 w-full rounded-xl border border-white/10 bg-[#11131b] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-violet-400/50"
+                          className="mt-3 w-full rounded-xl border border-white/10 bg-[#11131b] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-400/50"
                         />
                       )}
                     </div>
@@ -795,11 +844,11 @@ export default function DashboardPage() {
 
               {isGenerating && (
                 <div className="mx-auto max-w-4xl space-y-6">
-                  <div className="ml-auto max-w-2xl rounded-3xl rounded-br-md bg-violet-600 px-5 py-4 text-sm leading-6 text-white">
+                  <div className="ml-auto max-w-2xl rounded-3xl rounded-br-md bg-gradient-to-br from-blue-600 to-cyan-600 px-5 py-4 text-sm leading-6 text-white">
                     {prompt || generatedPrompt}
                   </div>
                   <div className="flex items-center gap-3 text-sm text-slate-400">
-                    <span className="ai-pulse flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/15 text-violet-300">
+                    <span className="ai-pulse flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-300">
                       ✦
                     </span>
                     Marketa is building your campaign...
@@ -811,7 +860,7 @@ export default function DashboardPage() {
                 <section className="mx-auto max-w-5xl space-y-7">
                   <div className="grid sm:grid-cols-[2.25rem_minmax(0,1fr)] sm:gap-3">
                     <div aria-hidden="true" className="hidden sm:block" />
-                    <div className="ml-auto w-full max-w-2xl rounded-3xl rounded-br-md bg-gradient-to-br from-violet-600 to-indigo-600 px-4 py-4 shadow-lg shadow-violet-950/30 sm:px-5">
+                    <div className="ml-auto w-full max-w-2xl rounded-3xl rounded-br-md bg-gradient-to-br from-blue-600 to-cyan-600 px-4 py-4 shadow-lg shadow-blue-950/30 sm:px-5">
                       <p className="whitespace-pre-line text-sm leading-6 text-white">
                         {generatedPrompt}
                       </p>
@@ -831,13 +880,13 @@ export default function DashboardPage() {
                   </div>
 
                   <div className="flex gap-0 sm:gap-3">
-                    <div className="mt-1 hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-500/15 text-violet-300 sm:flex">
+                    <div className="mt-1 hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-300 sm:flex">
                       ✦
                     </div>
                     <div className="min-w-0 flex-1 rounded-3xl border border-white/10 bg-[#10121a]/90 p-4 shadow-2xl shadow-black/20 backdrop-blur-xl sm:rounded-tl-md sm:p-7">
                       <div className="flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-300">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-300">
                             Campaign ready ✨
                           </p>
                           <h2 className="mt-2 text-xl font-semibold text-white">
@@ -886,7 +935,7 @@ export default function DashboardPage() {
                         />
                       </div>
 
-                      <div className="mt-6 rounded-2xl border border-violet-400/20 bg-violet-500/[0.07] p-4">
+                      <div className="mt-6 rounded-2xl border border-cyan-400/20 bg-cyan-500/[0.06] p-4">
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                           <div>
                             <p className="font-medium text-white">
@@ -899,7 +948,7 @@ export default function DashboardPage() {
                           {posterLimitReached ? (
                             <Link
                               href="/pricing"
-                              className="text-sm font-medium text-violet-300"
+                              className="text-sm font-medium text-cyan-300"
                             >
                               Upgrade poster limit →
                             </Link>
@@ -924,7 +973,7 @@ export default function DashboardPage() {
                                 type="button"
                                 onClick={handleGeneratePoster}
                                 disabled={isGeneratingPoster}
-                                className="w-full rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-violet-500 disabled:opacity-60 sm:w-auto"
+                                className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-4 py-2.5 text-sm font-medium text-white transition hover:from-blue-500 hover:to-cyan-400 disabled:opacity-60 sm:w-auto"
                               >
                                 {isGeneratingPoster ? "Creating..." : "Create poster"}
                               </button>
@@ -976,11 +1025,12 @@ export default function DashboardPage() {
                   </div>
                 </section>
               )}
+              <div ref={conversationEndRef} aria-hidden="true" />
             </div>
 
             <div
               id="campaign-builder"
-              className="sticky bottom-0 z-20 pb-5 pt-3 [background:linear-gradient(180deg,transparent,#07080d_28%)]"
+              className="z-20 shrink-0 pb-4 pt-2 [background:linear-gradient(180deg,transparent,#070a10_24%)]"
             >
               <div className="mx-auto max-w-4xl">
                 {campaignLimitReached && (
@@ -1000,7 +1050,7 @@ export default function DashboardPage() {
 
                 <form
                   onSubmit={handleGenerateCampaign}
-                  className="rounded-3xl border border-white/10 bg-[#12141d]/95 p-3 shadow-[0_20px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl focus-within:border-violet-400/40"
+                  className="rounded-3xl border border-white/10 bg-[#101722]/95 p-3 shadow-[0_20px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl focus-within:border-cyan-400/40"
                 >
                   {savedBusinessName && (
                     <div className="flex items-center gap-2 px-2 pb-2 text-xs text-slate-500">
@@ -1027,7 +1077,7 @@ export default function DashboardPage() {
                   />
 
                   {attachmentUrl && (
-                    <div className="mx-2 mb-2 flex items-center gap-3 rounded-xl border border-violet-400/20 bg-violet-500/10 p-2">
+                    <div className="mx-2 mb-2 flex items-center gap-3 rounded-xl border border-cyan-400/20 bg-cyan-500/10 p-2">
                       <Image
                         src={attachmentUrl}
                         alt="Attached business image"
@@ -1067,7 +1117,7 @@ export default function DashboardPage() {
                             key={template}
                             type="button"
                             onClick={() => setPrompt(template)}
-                            className="shrink-0 rounded-full border border-white/10 px-3 py-1.5 text-xs text-slate-400 transition hover:border-violet-400/30 hover:text-white"
+                            className="shrink-0 rounded-full border border-white/10 px-3 py-1.5 text-xs text-slate-400 transition hover:border-cyan-400/30 hover:text-white"
                           >
                             {template}
                           </button>
@@ -1095,13 +1145,13 @@ export default function DashboardPage() {
                         title="Attach a product, service, or brand image"
                         aria-label="Attach a product, service, or brand image"
                         data-tooltip="Attach an image"
-                        className="ai-tooltip relative flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-xl text-slate-400 transition hover:scale-105 hover:border-violet-400/40 hover:text-white disabled:opacity-50"
+                        className="ai-tooltip relative flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-xl text-slate-400 transition hover:scale-105 hover:border-cyan-400/40 hover:text-white disabled:opacity-50"
                       >
                         {isUploadingAttachment ? "…" : "+"}
                       </button>
                       <Link
                         href="/dashboard/business-profile"
-                        className="hidden text-xs text-slate-500 transition hover:text-violet-300 sm:inline"
+                        className="hidden text-xs text-slate-500 transition hover:text-cyan-300 sm:inline"
                       >
                         Brand Kit
                       </Link>
@@ -1115,7 +1165,7 @@ export default function DashboardPage() {
                         isUploadingAttachment ||
                         !prompt.trim()
                       }
-                      className="flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-500 px-4 text-sm font-medium text-white shadow-lg shadow-violet-950/30 transition hover:from-violet-500 hover:to-indigo-400 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-4 text-sm font-medium text-white shadow-lg shadow-blue-950/30 transition hover:from-blue-500 hover:to-cyan-400 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       {isGenerating ? "Thinking..." : "Generate"}
                       <span aria-hidden="true">↑</span>
