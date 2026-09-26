@@ -14,9 +14,9 @@ export default function Navbar() {
         </Link>
 
         <nav className="hidden gap-6 text-sm text-slate-400 md:flex">
-          <a href="#who-its-for" className="hover:text-white">
+          <Link href="/#who-its-for" className="hover:text-white">
             Built for business
-          </a>
+          </Link>
           <Link href="/pricing" className="hover:text-white">
             Pricing
           </Link>
@@ -32,7 +32,7 @@ export default function Navbar() {
             </Link>
 
             <Link
-              href="/signup"
+              href="/signup?plan=free"
               className="whitespace-nowrap rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 px-3 py-2 text-xs font-medium text-white hover:from-blue-500 hover:to-cyan-400 sm:px-4 sm:text-sm"
             >
               Get Started

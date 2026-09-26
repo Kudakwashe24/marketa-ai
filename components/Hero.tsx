@@ -29,17 +29,17 @@ export default function Hero() {
 
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             <Link
-              href="/signup"
+              href="/signup?plan=free"
               className="rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-6 py-3.5 text-center font-semibold text-white shadow-xl shadow-blue-950/40 transition hover:scale-[1.02] hover:from-blue-500 hover:to-cyan-400"
             >
               Enter Marketa AI →
             </Link>
-            <a
-              href="#pricing"
+            <Link
+              href="/#pricing"
               className="rounded-xl border border-white/10 bg-white/[0.04] px-6 py-3.5 text-center font-medium text-slate-300 transition hover:border-cyan-400/30 hover:text-white"
             >
               View plans
-            </a>
+            </Link>
           </div>
 
           <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-500">

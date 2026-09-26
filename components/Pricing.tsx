@@ -1,38 +1,54 @@
 import Link from "next/link";
+import type { PlanKey } from "@/lib/plans";
 
-const plans = [
+type PublicPlan = {
+  key: PlanKey;
+  name: string;
+  price: string;
+  description: string;
+  usage: string;
+  features: string[];
+  buttonText: string;
+  featured?: boolean;
+};
+
+const plans: PublicPlan[] = [
   {
+    key: "free",
     name: "Free",
     price: "$0",
     description: "Explore Marketa and create your first branded campaigns.",
-    usage: "5 campaigns · 3 posters",
+    usage: "5 campaigns · 3 posters / month",
     features: ["Core campaign copy", "Image context", "Basic history", "Watermarked posters"],
     buttonText: "Start free",
   },
   {
+    key: "starter",
     name: "Starter",
     price: "$9",
     description: "For small businesses marketing consistently each week.",
-    usage: "30 campaigns · 20 posters",
+    usage: "30 campaigns · 20 posters / month",
     features: ["Everything in Free", "Campaign templates", "Searchable history", "No poster watermark"],
-    buttonText: "Choose Starter",
+    buttonText: "Select Starter",
   },
   {
+    key: "growth",
     name: "Growth",
     price: "$19",
     description: "For active businesses running frequent promotions.",
-    usage: "200 campaigns · 100 posters",
-    features: ["Everything in Starter", "Personalized daily ideas", "Advanced history tools", "Priority creative capacity"],
-    buttonText: "Choose Growth",
+    usage: "200 campaigns · 100 posters / month",
+    features: ["Everything in Starter", "200 campaign generations", "100 watermark-free posters"],
+    buttonText: "Select Growth",
     featured: true,
   },
   {
+    key: "pro",
     name: "Pro",
     price: "$39",
     description: "For agencies and teams producing at high volume.",
     usage: "Unlimited campaigns & posters",
-    features: ["Everything in Growth", "Unlimited generation", "Full brand toolkit", "Built for heavy usage"],
-    buttonText: "Choose Pro",
+    features: ["Everything in Growth", "Unlimited campaign generation", "Unlimited template posters", "Advanced history tools"],
+    buttonText: "Select Pro",
   },
 ];
 
@@ -90,7 +106,8 @@ export default function Pricing() {
               </ul>
 
               <Link
-                href="/signup"
+                href={`/signup?plan=${plan.key}`}
+                aria-label={`${plan.buttonText} plan`}
                 className={`mt-8 inline-flex w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition group-hover:scale-[1.015] ${
                   plan.featured
                     ? "bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-lg shadow-blue-950/40 hover:from-blue-500 hover:to-cyan-400"
@@ -103,9 +120,13 @@ export default function Pricing() {
           ))}
         </div>
 
-        <p className="mt-5 text-center text-xs text-slate-600">
-          Monthly usage resets automatically. Start free and upgrade when you need more capacity.
-        </p>
+        <div className="mx-auto mt-6 max-w-3xl text-center text-xs leading-5 text-slate-500">
+          <p>Monthly usage resets automatically. No card is needed for Free.</p>
+          <p className="mt-1 text-slate-600">
+            Founder beta: paid checkout is being activated. Selecting a paid
+            plan carries your choice into signup, but you will not be charged yet.
+          </p>
+        </div>
       </div>
     </section>
   );

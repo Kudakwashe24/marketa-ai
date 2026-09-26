@@ -21,7 +21,7 @@ export default function CTA() {
 
           <div className="relative mt-8 flex flex-col justify-center gap-4 sm:flex-row">
             <Link
-              href="/signup"
+              href="/signup?plan=free"
               className="rounded-xl bg-white px-6 py-3 font-medium text-slate-900 transition hover:bg-slate-100"
             >
               Start Free

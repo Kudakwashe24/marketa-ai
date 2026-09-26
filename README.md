@@ -56,6 +56,8 @@ Poster generation currently uses reliable branded templates rendered by the appl
 | --- | --- |
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk browser publishable key |
 | `CLERK_SECRET_KEY` | Clerk server secret key |
+| `NEXT_PUBLIC_APP_URL` | Canonical production URL used by metadata and sitemaps |
+| `NEXT_PUBLIC_SUPPORT_EMAIL` | Optional public support inbox; beta Instagram support is used when blank |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `SUPABASE_SECRET_KEY` | Server-only Supabase secret key |
 | `GEMINI_API_KEY` | Server-only Gemini API key |
@@ -69,6 +71,7 @@ npm run dev    # Start the local development server
 npm run lint   # Run ESLint
 npm run build  # Create a production build
 npm run start  # Run the production build
+npm run check:launch # Validate production environment configuration
 ```
 
 ## Current V1 plans
@@ -77,15 +80,22 @@ npm run start  # Run the production build
 | --- | ---: | ---: | --- |
 | Free | 5 | 3 | Watermarked posters and basic history |
 | Starter | 30 | 20 | Templates and advanced history |
-| Growth | 200 | 100 | Personalized daily ideas |
+| Growth | 200 | 100 | Higher monthly creative capacity |
 | Pro | Unlimited | Unlimited | All current features |
 
-The source of truth for limits is `lib/plans.ts`. Paid pricing is displayed in the product, but checkout, recurring subscriptions, and payment webhooks are not integrated yet.
+The source of truth for limits is `lib/plans.ts`. A selected plan is carried through authentication, but paid checkout, recurring subscriptions, and payment webhooks are not integrated yet. Until that work is complete, users remain on Free and the product explicitly states that no charge has been made.
 
-## Before launch
+## Launch checklist
 
-- Connect checkout and subscription webhooks to plan changes
-- Add production monitoring, rate limiting, and abuse protection
-- Complete mobile and cross-browser QA
-- Review AI and poster unit costs against plan limits
-- Add generative-image posters only after output quality and cost controls are proven
+- [ ] Create and deploy a Clerk production instance and replace all `pk_test_` / `sk_test_` values in Vercel.
+- [ ] In Clerk, enable Google sign-in only, disable email/password and unused providers, and register the production domain and redirect URLs.
+- [ ] Choose a payment provider, connect checkout and signed webhooks, and update `user_profiles.plan` only after verified payment events.
+- [ ] Publish a monitored support email in `NEXT_PUBLIC_SUPPORT_EMAIL`.
+- [ ] Have the Privacy Policy, Terms, and Acceptable Use Policy reviewed for the operating business and launch countries.
+- [ ] Add production error monitoring, rate limiting, and abuse protection.
+- [ ] Complete signed-in desktop/mobile and cross-browser QA on a Vercel preview deployment.
+- [ ] Review Gemini and poster unit costs against every plan limit.
+- [ ] Run `npm run check:launch` with the production environment loaded.
+- [ ] Add generative-image posters only after output quality and cost controls are proven.
+
+Do not accept paid customers until the Clerk production keys, payment webhooks, legal review, and signed-in QA items are complete.

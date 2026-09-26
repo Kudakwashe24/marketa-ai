@@ -197,9 +197,8 @@ export default function AmbientPointer() {
         className="pointer-events-none fixed left-0 top-0 z-[60] hidden h-3 w-3 rounded-full border border-cyan-200/80 bg-cyan-400/50 opacity-0 shadow-[0_0_18px_rgba(34,211,238,0.9)] transition-opacity md:block"
       />
 
-      <button
-        type="button"
-        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+      <a
+        href="#top"
         aria-label="Back to top"
         data-tooltip="Back to top"
         className={`ai-tooltip fixed bottom-6 right-6 z-50 flex h-11 w-11 items-center justify-center rounded-full border border-cyan-300/25 bg-[#0d1520]/90 text-cyan-200 shadow-[0_10px_40px_rgba(8,145,178,0.28)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:scale-110 hover:border-cyan-300/60 hover:text-white ${
@@ -209,7 +208,7 @@ export default function AmbientPointer() {
         }`}
       >
         ↑
-      </button>
+      </a>
     </>
   );
 }
